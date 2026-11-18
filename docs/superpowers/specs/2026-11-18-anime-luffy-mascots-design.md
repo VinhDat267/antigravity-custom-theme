@@ -1,25 +1,29 @@
-# Thiết kế ngắn: Cặp Mô hình Nhân vật Anime Luffy Toàn Thân
+# Thiết kế: Cặp Mô hình Nhân vật Anime Luffy Toàn Thân (Đã rà soát)
 
 ## Mục tiêu & Lý do
-- **Vấn đề:** Hai mascot `luffy-chibi` và `luffy-gear5` hiện tại là icon chibi đầu tròn tối giản (`96×96`), chưa mang lại cảm giác mô hình nhân vật anime Luffy đứng trên màn hình Antigravity.
-- **Mục tiêu:** Thêm cặp nhân vật toàn thân phong cách anime cel-shading cho cả **Luffy Thuyền Trưởng (Wano / Red Coat)** và **Luffy Gear 5 (Sun God Nika)**, đồng thời nâng giới hạn kích thước Pet để nhân vật hiển thị sắc nét như mô hình trưng bày trên nền desktop.
+- **Vấn đề:** `luffy-chibi` và `luffy-gear5` hiện tại là chibi đầu tròn (`96×96`). Qua Spike thử nghiệm dáng thẳng đối xứng, bản vẽ tĩnh đối xứng vẫn còn cứng và ở ô chọn `46×46` khuôn mặt bị thu quá nhỏ.
+- **Mục tiêu:** Bổ sung cặp nhân vật **Vector Anime Cel-Shading toàn thân tư thế động 3/4** (`luffy-anime` & `luffy-gear5-anime`), tối ưu thumbnail trong Theme Studio bằng khung cắt cận chân dung, nâng trần kích thước trưng bày Pet lên `240px`, và vá các lỗi hitbox/thoại/vị trí để không che hay chặn click vùng chat.
 - **Không làm (Non-goals / Anti-goals):**
-  - Không thay đổi hay xóa `luffy-chibi` và `luffy-gear5` cũ (giữ tương thích ngược cho config/preset hiện có và icon nhỏ).
-  - Không dùng ảnh raster nền đục dễ dính viền trắng hoặc làm phình dung lượng `dist/antigravity-theme.js`.
+  - Không thay thế `luffy-chibi` hay `luffy-gear5` trên danh sách mascot cũ và **giữ nguyên chúng trên bong bóng chat** (`mu-rom-hai-tac`, `gear5-nika` hộp `54×44` ngang).
+  - Không nhúng ảnh raster đục hoặc ảnh AI cắt alpha quanh tóc gây nặng bundle.
   - Không dùng `<defs>`/`url(#...)` tĩnh trong SVG nội tuyến, không chạy `@keyframes` liên tục trên node con SVG ngoài `:hover`/`.is-reacting`, không dùng `filter: drop-shadow(...)`.
 
 ## Các hướng tiếp cận & Lựa chọn
-1. **Hướng 1 — Nhân vật Vector Anime Cel-Shading Toàn Thân (Đã chọn):**
-   - Tạo 2 template mới trong `src/assets/mascots.js`: `luffy-anime` (Luffy dáng đứng toàn thân áo khoác đỏ phanh ngực lộ sẹo X + áo choàng đen thuyền trưởng vắt vai, mũ rơm, đai vàng, quần lửng viền lông, dép rơm) và `luffy-gear5-anime` (form Nika toàn thân tóc lửa trắng, khăn mây hagoromo tím nhạt bồng bềnh quanh vai, tia sét Haki vàng/tím, áo trắng mở ngực sẹo X).
-   - *Lý do chọn:* Nền trong suốt 100% trên cả Light/Dark theme, nét sắc ở mọi kích thước (44–240px), nhẹ (~3–5 KB/mẫu), hỗ trợ chớp mắt (`agy-ct-anim-blink`) và lơ lửng (`agy-ct-anim-float`) mượt ở 120Hz.
-2. **Hướng 2 — Ảnh Anime / Figure 2.5D tách nền nhúng `.webp` (Không chọn):**
-   - *Đổi lại:* Dễ dính viền cắt quanh tóc, tăng mạnh dung lượng bundle, không có hoạt ảnh khuôn mặt nội tại. Vẫn giữ sẵn nút `Tải ảnh Pet` cho ảnh ngoài.
+1. **Hướng 1 — Vector Anime Cel-Shading Toàn Thân 3/4 Động (Đã chọn sau Spike):**
+   - `luffy-anime`: `viewBox="0 0 132 176"` (`aspect: 0.75`), dáng bước nghiêng 3/4, mũ rơm hơi nghiêng đổ bóng qua trán, sẹo dưới mắt trái, mắt anime có đồng tử + vệt sáng, áo gile đỏ mở phanh lộ sẹo chữ X, áo choàng đen viền vàng bay lệch theo gió, đai lưng vàng, quần lửng gấu lông trắng, dép rơm.
+   - `luffy-gear5-anime`: `viewBox="0 0 132 176"` (`aspect: 0.75`), dáng nhún/bật Nika năng động, tóc lửa trắng xoắn nhiều tầng, **dải mây hagoromo uốn chữ S liền mạch qua vai & cổ** (thay cho 2 quầng tròn đối xứng), mắt đỏ Nika + lông mày xoắn, miệng cười rộng Shishishi, áo trắng + đai tím + tia sét vàng/tím.
+   - *Biến thể render (`variant`):* `'pet'` trả về toàn thân `viewBox="0 0 132 176"`; `'thumb'` và `'bubble'` cắt cận nửa thân trên (`viewBox="16 2 100 84"`) để thumbnail `46×46` trong Theme Studio (và nếu dùng làm bubble mascot) hiển thị rõ mặt, mũ/tóc và áo.
 
-## Thiết kế kỹ thuật tóm tắt
-- **`src/assets/mascots.js`:** Thêm `luffy-anime` và `luffy-gear5-anime` với `viewBox="0 0 120 160"` (tỉ lệ toàn thân đứng), bóng đổ cel-shading 2–3 lớp tách biệt mảng da/tóc/áo/mũ rơm, mắt anime có con ngươi + highlight, chỉ dùng fill màu phẳng (không `id=`/`url(#...)`, không `<animate>`/`<style>`). Hỗ trợ cả biến thể `'pet'` và `'bubble'`.
-- **Kích thước trưng bày Pet (`44–240px`):** Nâng trần `pet.size` từ `160px` lên `240px` trong `src/core/config-store.js`, `src/fx/pet-stage.js` và slider `src/ui/theme-studio.js` (mặc định bundle dùng `140–156px` để đứng nổi bật mà không che khung chat).
-- **Thoại tương tác & Gói One Piece:** Thêm `FX_PET_QUIPS` song ngữ `vi`/`en` trong `src/fx/pet-stage.js` cho `luffy-anime` & `luffy-gear5-anime`, và cập nhật `one-piece-sunny-sunset` (`luffy-anime`) cùng `one-piece-gear5-nika` (`luffy-gear5-anime`) kèm preset bong bóng tương ứng (hoặc giữ lựa chọn trong tab FX cho tất cả mẫu).
-- **Kiểm thử & Xác minh:** TDD (`RED -> GREEN`) bổ sung kiểm thử trong `test/presets.test.mjs`, `test/config-store.test.mjs`, `test/fx-companions.test.mjs`, `test/surface-engine.test.mjs`, kiểm tra trực quan trong Chromium `preview.html` trên nền Dark & Light, và verify qua CDP `node cli.mjs verify`.
-
-## Điểm để lại cho bước triển khai
-- Chi tiết đường nét giải phẫu anime (`path` tóc, mắt, nếp áo choàng, thế đứng) và bảng màu cel-shading cụ thể sao cho giữ độ tương phản tốt cả ở 46px (thumbnail Studio) lẫn 240px (trên màn hình).
+## Vá kỹ thuật bắt buộc
+1. **Hitbox theo đúng tỷ lệ `3:4` & Xuyên click vùng trống (`PetStage` + `SurfaceEngine`):**
+   - `MASCOT_TEMPLATES[id]` hỗ trợ thuộc tính tùy chọn `aspect` (mặc định `1`, với 2 mẫu anime là `0.75`). `PetStage.update()` đặt `width = Math.round(size * aspect)`, `height = size`.
+   - `clampOutsideHole(x, y, sizeOrBox, holeRect, viewport)` nhận cả số `size` (tương thích ngược) lẫn `{ width, height }`; chế độ `roam` tính `maxW`/`maxH` theo đúng kích thước thực.
+   - Trên `#agy-ct-pet-stage .agy-ct-svg-art`, đặt `pointer-events: none` ở gốc và `pointer-events: visiblePainted` trên các shape con (giữ `pointer-events: auto` cho custom `<img>`) để vùng trong suốt xung quanh nhân vật không chặn click vào tin nhắn/nút bên dưới.
+2. **Lật bong bóng thoại thông minh (`.agy-ct-pet-speech.is-below`):**
+   - Khi `this.pos.y < 64` (pet ở sát mép trên / gần titlebar), `PetStage.applyCoords()` bật class `.is-below` trên `speechEl` để CSS chuyển thoại xuống dưới (`bottom: auto; top: calc(100% + 8px)`), tránh bị cắt khỏi mép trên.
+3. **Trần kích thước `44–240px` & vị trí mặc định thoáng chat:**
+   - Nâng trần `pet.size` từ `160` lên `240` trong `src/core/config-store.js`, `src/fx/pet-stage.js` và thanh trượt `src/ui/theme-studio.js`.
+   - Cập nhật 2 gói `one-piece-sunny-sunset` (`pet.id: 'luffy-anime'`) và `one-piece-gear5-nika` (`pet.id: 'luffy-gear5-anime'`) với `size: 168`, đặt tại vị trí mở bên phải phía trên composer (`pos: { xPct: 80, yPct: 48 }`) để làm mô hình nổi bật mà không đè lên cột hội thoại.
+4. **Thoại tương tác & Kiểm thử:**
+   - Thêm `FX_PET_QUIPS` (`vi`/`en`) cho `luffy-anime` và `luffy-gear5-anime` trong `src/fx/pet-stage.js`.
+   - Cập nhật kiểm thử trong `test/presets.test.mjs`, `test/config-store.test.mjs`, `test/fx-companions.test.mjs`, `test/surface-engine.test.mjs`, xác minh bằng `node --test`, `node cli.mjs build`, Playwright `preview.html`, và live CDP `node cli.mjs verify`.
