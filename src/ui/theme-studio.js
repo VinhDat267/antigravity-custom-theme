@@ -661,7 +661,7 @@ export class ThemeStudio {
             },
             [
               tsEl('div', {
-                style: `padding:7px 10px;border-radius:${inp.radius};background:${inp.bg};border:${inp.border};font-size:11.5px;color:#9ca3af;`,
+                style: `padding:7px 10px;border-radius:${inp.radius};background:${inp.bg};border:${inp.border};font-size:11.5px;color:${inp.isLight ? '#475569' : '#9ca3af'};`,
                 textContent: 'Ask anything...'
               }),
               tsEl('span', { style: 'font-size:11.5px;', textContent: lang === 'en' ? inp.nameEn : inp.name })

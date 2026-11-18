@@ -630,27 +630,110 @@ test('Multi-split perf: buildStylesheet removes universal * selectors, overflow 
   }
 });
 
-test('One Piece Dark & Light bundles emit balanced Zero-Live-Blur CSS without scrollCaps::after conflicts', () => {
+test('One Piece Dark & Light & Gear 5 Nika bundles emit balanced Zero-Live-Blur CSS with readable Light ink overrides', () => {
   const sunsetBundle = THEME_BUNDLES.find((b) => b.id === 'one-piece-sunny-sunset');
   const bountyBundle = THEME_BUNDLES.find((b) => b.id === 'one-piece-grand-line-bounty');
+  const nikaBundle = THEME_BUNDLES.find((b) => b.id === 'one-piece-gear5-nika');
   assert.ok(sunsetBundle, 'Missing one-piece-sunny-sunset bundle');
   assert.ok(bountyBundle, 'Missing one-piece-grand-line-bounty bundle');
+  assert.ok(nikaBundle, 'Missing one-piece-gear5-nika bundle');
 
   const darkCfg = sanitizeImportedConfig({ ...DEFAULT_CONFIG, ...sunsetBundle.patch, activeBundleId: sunsetBundle.id });
   const darkCss = buildStylesheet(darkCfg, {});
   assertBalancedCssBraces(darkCss);
   assert.ok(!/backdrop-filter:\s*blur\(/i.test(darkCss));
   assert.match(darkCss, /\.agy-ct-bubble-styled::after\s*\{[^}]*background-image:\s*url\("data:image\/svg\+xml/);
+  assert.ok(darkCss.includes('#fef3c7'), 'Sunny Sunset bubble should preserve light ink over dark bubble surface');
+
+  const nikaCfg = sanitizeImportedConfig({ ...DEFAULT_CONFIG, ...nikaBundle.patch, activeBundleId: nikaBundle.id });
+  const nikaCss = buildStylesheet(nikaCfg, {});
+  assertBalancedCssBraces(nikaCss);
+  assert.ok(!/backdrop-filter:\s*blur\(/i.test(nikaCss));
+  assert.match(nikaCss, /\.agy-ct-bubble-styled::after\s*\{[^}]*background-image:\s*url\("data:image\/svg\+xml/);
 
   const lightCfg = sanitizeImportedConfig({ ...DEFAULT_CONFIG, ...bountyBundle.patch, activeBundleId: bountyBundle.id });
   const lightCss = buildStylesheet(lightCfg, {});
   assertBalancedCssBraces(lightCss);
   assert.ok(!/backdrop-filter:\s*blur\(/i.test(lightCss));
   assert.ok(lightCss.includes('#0f172a'));
+  assert.ok(lightCss.includes('#2b1d0e'), 'Wanted Bounty bubble should preserve dark parchment ink');
   assert.ok(lightCss.includes('width: 8px'), 'scrollCaps must emit 8px scroll cap pseudo-elements');
   assert.ok(
     !/\.agy-ct-bubble-styled::after\s*\{[^}]*background-image:/.test(lightCss),
     'lenh-truy-na must not emit cornerOrnament ::after override over scrollCaps'
   );
+  // Light Mode host variable & surface contrast guards (overriding Antigravity Monokai/dark html[style] tokens)
+  assert.ok(lightCss.includes('--foreground: #0f172a !important'), 'Light mode must override host --foreground token');
+  assert.ok(lightCss.includes('--placeholder: #64748b !important'), 'Light mode must override host --placeholder token');
+  assert.match(lightCss, /\[class\*="@container\/titlebar"\]\s*:is\(/, 'Light mode must force readable ink on titlebar descendants');
+  assert.match(lightCss, /\.surface-composer[\s\S]*p\.pointer-events-none/, 'Light mode must force dark muted placeholder inside composer');
+  assert.ok(lightCss.includes('[data-side-panel-body="true"]'), 'Light mode must ensure dark readable ink inside side panel markdown views');
+  assert.match(lightCss, /#agy-ct-launcher\s*\{[^}]*background:\s*#fffbeb/, 'Light mode launcher pill must use parchment light background');
+  assert.match(lightCss, /\.agy-ct-pet-speech\s*\{[^}]*background:\s*#fffbeb/, 'Light mode pet speech bubble must use parchment light background');
+});
+
+test('SurfaceEngine.decorateChatBubbles mounts luffy-chibi and luffy-gear5 mascots onto tight user bubbles', () => {
+  const origDoc = globalThis.document;
+  const origWin = globalThis.window;
+  try {
+    const makeClassList = () => {
+      const set = new Set();
+      return {
+        add: (...c) => c.forEach((x) => set.add(x)),
+        remove: (...c) => c.forEach((x) => set.delete(x)),
+        contains: (c) => set.has(c)
+      };
+    };
+    let createdHost = null;
+    const bubbleFrame = {
+      classList: makeClassList(),
+      attributes: {},
+      dataset: {},
+      parentElement: null,
+      closest: () => null,
+      getAttribute: (k) => bubbleFrame.attributes[k] ?? null,
+      querySelector: (sel) => (sel.includes('.agy-ct-bubble-mascot') ? createdHost : null),
+      appendChild(node) {
+        createdHost = node;
+        node.parentElement = this;
+        return node;
+      }
+    };
+    globalThis.window = { addEventListener() {}, removeEventListener() {} };
+    globalThis.document = {
+      hidden: false,
+      createElement: () => ({
+        className: '',
+        innerHTML: '',
+        dataset: {},
+        attributes: {},
+        setAttribute(k, v) {
+          this.attributes[k] = v;
+        },
+        remove() {
+          createdHost = null;
+        }
+      }),
+      querySelectorAll: (sel) => {
+        if (sel.includes('.agy-user-bubble-frame')) return [bubbleFrame];
+        if (sel === '.agy-ct-bubble-styled') return bubbleFrame.classList.contains('agy-ct-bubble-styled') ? [bubbleFrame] : [];
+        return [];
+      }
+    };
+
+    const engine = new SurfaceEngine({ getConfig: () => DEFAULT_CONFIG, getCustomMedia: () => ({}) });
+    engine.decorateChatBubbles({ ...DEFAULT_CONFIG, enabled: true, bubbleId: 'mu-rom-hai-tac', bubbleMascotEnabled: true });
+    assert.equal(bubbleFrame.classList.contains('agy-ct-bubble-styled'), true);
+    assert.ok(createdHost, 'Expected bubble mascot host element');
+    assert.match(createdHost.innerHTML, /^<svg[^>]*class="agy-ct-svg-art agy-ct-anim-bob"/);
+
+    const firstSvg = createdHost.innerHTML;
+    engine.decorateChatBubbles({ ...DEFAULT_CONFIG, enabled: true, bubbleId: 'gear5-nika', bubbleMascotEnabled: true });
+    assert.notEqual(createdHost.innerHTML, firstSvg, 'Switching from mu-rom-hai-tac to gear5-nika must swap mascot artwork');
+    assert.equal(createdHost.dataset.mascotKey, 'gear5-nika:luffy-gear5');
+  } finally {
+    globalThis.document = origDoc;
+    globalThis.window = origWin;
+  }
 });
 

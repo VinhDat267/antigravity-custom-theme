@@ -308,7 +308,11 @@ export const MASCOT_TEMPLATES = {
     render(variant = 'pet') {
       const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
       return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M35 59L29 67M61 59L67 67" stroke="#d97706" stroke-width="6" stroke-linecap="round"/>
+  <path d="M35 59L29 67M61 59L67 67" stroke="#fde68a" stroke-width="3.6" stroke-linecap="round"/>
   <path d="M31 78C31 61 38 54 48 54C58 54 65 61 65 78L60 84H36Z" fill="#dc2626" stroke="#991b1b" stroke-width="1.5"/>
+  <path d="M32 61Q35.5 55 39 59L37 64Q34 62 32 61Z" fill="#ef4444" stroke="#991b1b" stroke-width="1.1"/>
+  <path d="M64 61Q60.5 55 57 59L59 64Q62 62 64 61Z" fill="#ef4444" stroke="#991b1b" stroke-width="1.1"/>
   <path d="M43 55H53L51 77H45Z" fill="#fde68a"/>
   <path d="M45 61L51 67M51 61L45 67" stroke="#b45309" stroke-width="1.6" stroke-linecap="round"/>
   <rect x="36" y="75" width="24" height="4.5" rx="2" fill="#f59e0b"/>
@@ -325,7 +329,8 @@ export const MASCOT_TEMPLATES = {
   <path d="M52 44Q56 46 60 45M55 43.5L54.5 47M58 44L57.5 47.5" stroke="#991b1b" stroke-width="1.2" stroke-linecap="round"/>
   <path d="M40 46Q48 53 56 46Z" fill="#ffffff" stroke="#7c2d12" stroke-width="1.3" stroke-linejoin="round"/>
   <path d="M31 27C31 15 39 10 48 10C57 10 65 15 65 27Z" fill="#fde047" stroke="#a16207" stroke-width="1.5"/>
-  <path d="M31 23H65V27H31Z" fill="#dc2626"/>
+  <path d="M39 15Q48 12.5 57 15" stroke="#fef9c3" stroke-width="1.3" stroke-linecap="round" opacity="0.8"/>
+  <path d="M31 23H65V27H31Z" fill="#dc2626" stroke="#991b1b" stroke-width="0.9"/>
   <ellipse cx="48" cy="27.5" rx="25" ry="5.5" fill="#facc15" stroke="#a16207" stroke-width="1.6"/>
   <circle cx="77" cy="24" r="2.6" fill="#fde047" class="agy-ct-anim-twinkle"/>
 </svg>`;
@@ -343,13 +348,20 @@ export const MASCOT_TEMPLATES = {
     <path d="M16 32L24 22L21 34L28 29" stroke="#e9d5ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
     <path d="M80 28L71 36L76 41L68 50" stroke="#fde047" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
-  <path d="M22 63C14 57 15 44 25 42C29 36 37 37 40 42H56C59 37 67 36 71 42C81 44 82 57 74 63C69 67 63 63 60 58H36C33 63 27 67 22 63Z" fill="#ffffff" stroke="#c084fc" stroke-width="1.5"/>
-  <path d="M32 78C32 61 38 54 48 54C58 54 64 61 64 78L59 84H37Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.4"/>
+  <path d="M22 63C14 57 15 44 25 42C29 36 37 37 40 42H56C59 37 67 36 71 42C81 44 82 57 74 63C69 67 63 63 60 58H36C33 63 27 67 22 63Z" fill="#ffffff" stroke="#9333ea" stroke-width="1.6"/>
+  <path d="M24 58C19 54 20 47 26 46M72 58C77 54 76 47 70 46M30 43Q34 39 38 43M58 43Q62 39 66 43" stroke="#d8b4fe" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M35 60L30 68M61 60L66 68" stroke="#d97706" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M35 60L30 68M61 60L66 68" stroke="#fde68a" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M32 78C32 61 38 54 48 54C58 54 64 61 64 78L59 84H37Z" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
   <path d="M43 55H53L51 76H45Z" fill="#fde68a"/>
   <path d="M45 61L51 67M51 61L45 67" stroke="#b45309" stroke-width="1.6" stroke-linecap="round"/>
-  <rect x="37" y="75" width="22" height="4.5" rx="2" fill="#c084fc"/>
-  <circle cx="48" cy="40" r="15.5" fill="#fde68a" stroke="#cbd5e1" stroke-width="1.3"/>
-  <path d="M29 37C25 27 31 19 38 20C40 12 52 11 56 18C63 16 70 23 66 33C69 36 66 40 62 39C59 31 54 31 50 35L47 28L42 35C37 31 33 33 29 37Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.4" stroke-linejoin="round"/>
+  <rect x="37" y="75" width="22" height="4.5" rx="2" fill="#c084fc" stroke="#7e22ce" stroke-width="0.8"/>
+  <circle cx="30" cy="68" r="4.6" fill="#fde68a" stroke="#d97706" stroke-width="1.2"/>
+  <circle cx="66" cy="68" r="4.6" fill="#fde68a" stroke="#d97706" stroke-width="1.2"/>
+  <circle cx="48" cy="40" r="15.5" fill="#fde68a" stroke="#94a3b8" stroke-width="1.4"/>
+  <path d="M29 37C25 27 31 19 38 20C40 12 52 11 56 18C63 16 70 23 66 33C69 36 66 40 62 39C59 31 54 31 50 35L47 28L42 35C37 31 33 33 29 37Z" fill="#f8fafc" stroke="#64748b" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M34 25C38 19 46 18 52 21M55 24Q60 22 62 27" stroke="#ddd6fe" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M38 35.5Q41.5 34 44.5 35.5M51.5 35.5Q54.5 34 58 35.5" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round"/>
   <g class="agy-ct-anim-blink" style="transform-origin:48px 40px">
     <circle cx="41.5" cy="40" r="2.7" fill="#e11d48"/>
     <circle cx="54.5" cy="40" r="2.7" fill="#e11d48"/>

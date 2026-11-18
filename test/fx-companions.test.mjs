@@ -481,9 +481,11 @@ test('PetStage roam mode sleeps rAF once target is reached and wakes on next roa
   }
 });
 
-test('PetStage triggerClickReaction displays localized One Piece quips for chopper-chibi and thousand-sunny', () => {
+test('PetStage triggerClickReaction displays localized One Piece quips for all 4 One Piece mascots without real timer overhead', () => {
   const origDoc = globalThis.document;
   const origWin = globalThis.window;
+  const origSetTimeout = globalThis.setTimeout;
+  const origClearTimeout = globalThis.clearTimeout;
 
   const makeStubEl = () => ({
     id: '',
@@ -505,6 +507,9 @@ test('PetStage triggerClickReaction displays localized One Piece quips for chopp
   });
 
   try {
+    let nextTimerId = 1;
+    globalThis.setTimeout = () => nextTimerId++;
+    globalThis.clearTimeout = () => {};
     globalThis.document = {
       hidden: false,
       body: { contains: () => true, appendChild() {} },
@@ -521,31 +526,65 @@ test('PetStage triggerClickReaction displays localized One Piece quips for chopp
       cancelAnimationFrame() {}
     };
 
-    for (const petId of ['chopper-chibi', 'thousand-sunny', 'luffy-chibi', 'luffy-gear5']) {
-      for (const lang of ['vi', 'en']) {
-        const pet = new PetStage({
-          getConfig: () => ({
-            enabled: true,
-            lang,
-            pet: { enabled: true, id: petId, mode: 'float', size: 86, opacity: 96, pos: { xPct: 22, yPct: 14 }, showSpeechOnClick: true }
-          }),
-          getCustomMedia: () => ({}),
-          getBrowserHoleRect: () => null,
-          onPositionSave: () => {}
-        });
-        try {
-          pet.update();
-          pet.triggerClickReaction();
-          const line = pet.speechEl.textContent;
-          assert.ok(line.length > 0, `Expected non-empty speech line for ${petId} (${lang})`);
-          assert.notEqual(line, 'Xin chào! ✨', `Expected custom VI quip for ${petId}, got fallback`);
-          assert.notEqual(line, 'Hello! ✨', `Expected custom EN quip for ${petId}, got fallback`);
-        } finally {
-          pet.destroy();
-        }
+    const expectedBanks = {
+      'chopper-chibi': {
+        vi: ['Đừng khen nữa mà, đồ ngốc~ 🌸', 'Bác sĩ Chopper kiểm tra bug giúp bạn nè! 🩺', 'Uống nước và nghỉ ngơi xíu rồi code tiếp nha ✨'],
+        en: ["Stop praising me, you idiot~ 🌸", 'Dr. Chopper reporting for bug checkup! 🩺', 'Drink some water and keep shipping ✨']
+      },
+      'thousand-sunny': {
+        vi: ['Gió thuận rồi, căng buồm ra Tân Thế Giới thôi! 🏴‍☠️', 'Thousand Sunny đang lướt êm ở 120 FPS~ ⛵', 'Coup de Burst tới đích deploy nào! ✨'],
+        en: ['Fair winds ahead—set sail for the New World! 🏴‍☠️', 'Cruising smooth at 120 FPS~ ⛵', 'Coup de Burst straight to deploy! ✨']
+      },
+      'luffy-chibi': {
+        vi: ['Ta sẽ trở thành Vua Hải Tặc! 🏴‍☠️', 'Gomu Gomu no... Ship Code Thần Tốc! ⚡', 'Đói quá, xong task này đi ăn thịt nha~ 🍖'],
+        en: ["I'm gonna be King of the Pirates! 🏴‍☠️", 'Gomu Gomu no... Ship Clean Code! ⚡', 'Meat break after this deploy~ 🍖']
+      },
+      'luffy-gear5': {
+        vi: ['Nhịp trống giải phóng vang lên rồi! Shishishi~ 🥁', 'Gear 5 mở hết công suất 120 FPS luôn! ✨', 'Tự do sáng tạo như Thần Mặt Trời Nika! ☁️'],
+        en: ['Drums of Liberation are beating! Shishishi~ 🥁', 'Gear 5 full power at 120 FPS! ✨', 'Infinite freedom with Sun God Nika! ☁️']
+      }
+    };
+
+    for (const petId of Object.keys(expectedBanks)) {
+      const petVi = new PetStage({
+        getConfig: () => ({
+          enabled: true,
+          lang: 'vi',
+          pet: { enabled: true, id: petId, mode: 'float', size: 86, opacity: 96, pos: { xPct: 22, yPct: 14 }, showSpeechOnClick: true }
+        }),
+        getCustomMedia: () => ({}),
+        getBrowserHoleRect: () => null,
+        onPositionSave: () => {}
+      });
+      const petEn = new PetStage({
+        getConfig: () => ({
+          enabled: true,
+          lang: 'en',
+          pet: { enabled: true, id: petId, mode: 'float', size: 86, opacity: 96, pos: { xPct: 22, yPct: 14 }, showSpeechOnClick: true }
+        }),
+        getCustomMedia: () => ({}),
+        getBrowserHoleRect: () => null,
+        onPositionSave: () => {}
+      });
+      try {
+        petVi.update();
+        petVi.triggerClickReaction();
+        const viLine = petVi.speechEl.textContent;
+        assert.ok(expectedBanks[petId].vi.includes(viLine), `Expected VI bank line for ${petId}, got ${viLine}`);
+
+        petEn.update();
+        petEn.triggerClickReaction();
+        const enLine = petEn.speechEl.textContent;
+        assert.ok(expectedBanks[petId].en.includes(enLine), `Expected EN bank line for ${petId}, got ${enLine}`);
+        assert.notEqual(viLine, enLine, `VI and EN quips for ${petId} must be localized distinctly`);
+      } finally {
+        petVi.destroy();
+        petEn.destroy();
       }
     }
   } finally {
+    globalThis.setTimeout = origSetTimeout;
+    globalThis.clearTimeout = origClearTimeout;
     globalThis.document = origDoc;
     globalThis.window = origWin;
   }

@@ -150,21 +150,23 @@ export const WALLPAPERS = [
     nameEn: 'Thousand Sunny Sunset',
     embeddedDataUri: wpSvgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
       <defs>
-        <linearGradient id="opSsSky" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0%" stop-color="#081224"/><stop offset="52%" stop-color="#18294a"/><stop offset="100%" stop-color="#5b2333"/></linearGradient>
-        <radialGradient id="opSsSun" cx="72.5%" cy="40%" r="44%"><stop offset="0%" stop-color="#fde047" stop-opacity="0.45"/><stop offset="45%" stop-color="#f97316" stop-opacity="0.24"/><stop offset="100%" stop-color="#081224" stop-opacity="0"/></radialGradient>
+        <linearGradient id="opSsSky" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0%" stop-color="#081224"/><stop offset="52%" stop-color="#1b2c4e"/><stop offset="100%" stop-color="#6b2737"/></linearGradient>
+        <radialGradient id="opSsSun" cx="72.5%" cy="40%" r="46%"><stop offset="0%" stop-color="#fef08a" stop-opacity="0.62"/><stop offset="42%" stop-color="#f97316" stop-opacity="0.34"/><stop offset="100%" stop-color="#081224" stop-opacity="0"/></radialGradient>
         <linearGradient id="opSsSea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#132542"/><stop offset="100%" stop-color="#070d1a"/></linearGradient>
       </defs>
       <rect width="1600" height="900" fill="url(#opSsSky)"/><rect width="1600" height="900" fill="url(#opSsSun)"/>
-      <circle cx="1160" cy="360" r="118" fill="#fef08a" opacity="0.22"/><circle cx="1160" cy="360" r="82" fill="#f59e0b" opacity="0.26"/>
+      <circle cx="1160" cy="360" r="126" fill="#fef08a" opacity="0.32"/><circle cx="1160" cy="360" r="84" fill="#fbbf24" opacity="0.46"/><circle cx="1160" cy="360" r="84" fill="none" stroke="#fef9c3" stroke-width="2.5" opacity="0.48"/>
       <path d="M0 600Q380 575 760 605T1600 590V900H0Z" fill="url(#opSsSea)"/>
-      <path d="M980 612H1340M1030 638H1290M1070 664H1250" stroke="#fbbf24" stroke-width="4" stroke-linecap="round" opacity="0.28"/>
-      <path d="M0 695Q410 645 830 700T1600 665V900H0Z" fill="#091121" opacity="0.9"/>
-      <path d="M1070 548L1242 548L1218 592H1094Z" fill="#0b101d"/>
-      <path d="M1152 380V548M1118 426V548M1186 436V548" stroke="#1e293b" stroke-width="5"/>
-      <path d="M1114 434Q1152 414 1190 434L1184 510Q1152 496 1120 510Z" fill="#f8fafc" opacity="0.24"/>
-      <path d="M1084 468Q1104 452 1122 468L1118 524Q1104 514 1088 524Z" fill="#fca5a5" opacity="0.22"/>
-      <path d="M1184 472Q1202 456 1222 472L1216 524Q1202 516 1188 524Z" fill="#fde047" opacity="0.2"/>
-      <circle cx="280" cy="170" r="2.5" fill="#fef3c7" opacity="0.7"/><circle cx="520" cy="110" r="2" fill="#bae6fd" opacity="0.65"/><circle cx="840" cy="150" r="2.6" fill="#fef08a" opacity="0.75"/>
+      <path d="M970 612H1350M1020 638H1300M1060 664H1260M1105 688H1215" stroke="#fbbf24" stroke-width="4.5" stroke-linecap="round" opacity="0.42"/>
+      <path d="M0 695Q410 645 830 700T1600 665V900H0Z" fill="#091121" opacity="0.92"/>
+      <path d="M1066 546L1246 546L1220 594H1092Z" fill="#070b14" stroke="#f59e0b" stroke-width="1.8" stroke-opacity="0.55"/>
+      <circle cx="1246" cy="560" r="11" fill="#f59e0b" opacity="0.58"/>
+      <path d="M1152 372V546M1116 420V546M1188 430V546" stroke="#334155" stroke-width="5.5" stroke-linecap="round"/>
+      <path d="M1152 372H1172L1168 386H1152Z" fill="#0f172a" stroke="#f8fafc" stroke-width="1.2" stroke-opacity="0.55"/>
+      <path d="M1112 430Q1152 406 1192 430L1186 512Q1152 496 1118 512Z" fill="#fffbeb" opacity="0.44" stroke="#fde68a" stroke-width="1.4" stroke-opacity="0.4"/>
+      <path d="M1082 466Q1103 448 1122 466L1118 526Q1103 514 1086 526Z" fill="#fda4af" opacity="0.38"/>
+      <path d="M1184 470Q1204 452 1224 470L1218 526Q1204 514 1188 526Z" fill="#fde047" opacity="0.36"/>
+      <circle cx="280" cy="170" r="2.5" fill="#fef3c7" opacity="0.72"/><circle cx="520" cy="110" r="2" fill="#bae6fd" opacity="0.68"/><circle cx="840" cy="150" r="2.6" fill="#fef08a" opacity="0.78"/>
     </svg>`),
     previewCss: 'linear-gradient(135deg, #0b162c 0%, #5b2333 65%, #d97706 100%)'
   },
@@ -191,6 +193,28 @@ export const WALLPAPERS = [
       <path d="M0 780Q460 710 920 790T1600 740V900H0Z" fill="#c7b283" opacity="0.35"/>
     </svg>`),
     previewCss: 'linear-gradient(135deg, #f4eacd 0%, #e3d0a2 70%, #d7474b 100%)'
+  },
+  {
+    id: 'one-piece-nika-moon',
+    name: 'Trăng Giải Phóng Nika (Gear 5)',
+    nameEn: 'Nika Full Moon Liberation',
+    embeddedDataUri: wpSvgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="opNkSky" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0%" stop-color="#070916"/><stop offset="52%" stop-color="#181236"/><stop offset="100%" stop-color="#2c194d"/></linearGradient>
+        <radialGradient id="opNkMoonGlow" cx="73%" cy="35%" r="44%"><stop offset="0%" stop-color="#f8fafc" stop-opacity="0.52"/><stop offset="38%" stop-color="#c084fc" stop-opacity="0.26"/><stop offset="100%" stop-color="#070916" stop-opacity="0"/></radialGradient>
+        <linearGradient id="opNkMoonCore" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/><stop offset="100%" stop-color="#e9d5ff" stop-opacity="0.72"/></linearGradient>
+      </defs>
+      <rect width="1600" height="900" fill="url(#opNkSky)"/><rect width="1600" height="900" fill="url(#opNkMoonGlow)"/>
+      <circle cx="1165" cy="315" r="142" fill="url(#opNkMoonCore)" opacity="0.45"/><circle cx="1165" cy="315" r="112" fill="#f8fafc" opacity="0.68"/>
+      <path d="M910 385C845 340 855 255 930 245C965 185 1045 190 1075 235" stroke="#e9d5ff" stroke-width="18" stroke-linecap="round" fill="none" opacity="0.34"/>
+      <path d="M1260 220C1335 195 1410 245 1385 320C1435 355 1415 430 1345 435" stroke="#f8fafc" stroke-width="16" stroke-linecap="round" fill="none" opacity="0.32"/>
+      <path d="M220 210L268 156L248 228L298 188" stroke="#f5c451" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.48"/>
+      <path d="M1370 140L1326 196L1354 214L1308 268" stroke="#e9d5ff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.52"/>
+      <path d="M0 675Q320 620 690 680T1600 645V900H0Z" fill="#0d0b1e" opacity="0.92"/>
+      <path d="M0 735C220 680 410 730 620 695C860 660 1090 735 1360 685C1460 665 1540 690 1600 710V900H0Z" fill="#f8fafc" opacity="0.1"/>
+      <circle cx="340" cy="140" r="2.6" fill="#fef08a" opacity="0.72"/><circle cx="620" cy="105" r="2.2" fill="#e9d5ff" opacity="0.7"/><circle cx="880" cy="165" r="2.8" fill="#ffffff" opacity="0.75"/>
+    </svg>`),
+    previewCss: 'linear-gradient(135deg, #0b0e24 0%, #3b2266 58%, #e9d5ff 100%)'
   }
 ];
 

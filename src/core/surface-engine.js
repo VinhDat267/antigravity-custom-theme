@@ -230,6 +230,46 @@ export function buildStylesheet(config, customMedia = {}) {
     body.agy-ct-active {
       background: transparent !important;
       background-color: transparent !important;
+      ${
+        enabled && isLight
+          ? `
+        color-scheme: light !important;
+        --foreground: ${uiInk} !important;
+        --color-foreground: ${uiInk} !important;
+        --secondary-foreground: #1e293b !important;
+        --muted-foreground: #475569 !important;
+        --placeholder: #64748b !important;
+        --card-foreground: ${uiInk} !important;
+        --popover-foreground: ${uiInk} !important;
+        --code-foreground: #7c2d12 !important;
+        --link: #0369a1 !important;
+        --secondary: rgba(15, 23, 42, 0.075) !important;
+        --muted: rgba(15, 23, 42, 0.05) !important;
+        --border: rgba(15, 23, 42, 0.14) !important;
+        --card-border: rgba(15, 23, 42, 0.14) !important;
+      `
+          : ''
+      }
+    }
+    ${
+      enabled && isLight
+        ? `
+      html.agy-ct-active .settings-modal-container {
+        --foreground: #f4f4f5 !important;
+        --color-foreground: #f4f4f5 !important;
+        --secondary-foreground: #e4e4e7 !important;
+        --muted-foreground: #a1a1aa !important;
+        --placeholder: #71717a !important;
+        --card-foreground: #f4f4f5 !important;
+        --popover-foreground: #f4f4f5 !important;
+        --secondary: rgba(255, 255, 255, 0.08) !important;
+        --muted: rgba(255, 255, 255, 0.05) !important;
+        --border: rgba(255, 255, 255, 0.1) !important;
+        --card-border: rgba(255, 255, 255, 0.12) !important;
+        color: #e4e4e7;
+      }
+    `
+        : ''
     }
 
     #agy-ct-bg-root {
@@ -467,6 +507,16 @@ export function buildStylesheet(config, customMedia = {}) {
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
       }
+      ${
+        isLight
+          ? `
+        .agy-shell [class*="@container/titlebar"] :is(button, a, span, div, svg),
+        [data-agy-mock-shell] [data-agy-topbar] > strong {
+          color: ${uiInk} !important;
+        }
+      `
+          : ''
+      }
 
       /* Split-Browser hole cutout for wallpaper, glass, and canvas */
       body[data-has-browser-hole="true"] #agy-ct-bg-root,
@@ -519,12 +569,34 @@ export function buildStylesheet(config, customMedia = {}) {
       ${
         isLight
           ? `
-        .agy-shell .bg-sidebar a,
-        .agy-shell .bg-sidebar span,
-        .agy-shell .bg-sidebar button,
+        .agy-shell .bg-sidebar :is(a, span, button, div, p, svg),
+        .agy-shell [data-testid="conversation-list-sidebar"] :is(a, span, button, div, p, svg),
+        .agy-shell .agy-sidebar-row,
+        .agy-shell .agy-sidebar-row :is(span, div, svg),
         .agy-shell [data-main-content-body="true"],
-        .agy-shell [data-testid="agent-response"] :is(p, li, span, code, h1, h2, h3, h4, strong, td, th) {
+        .agy-shell [data-side-panel-body="true"],
+        .agy-shell [data-side-panel-body="true"] :is(h1, h2, h3, h4, h5, h6, p, li, span, div, code, pre, a, strong, em, td, th),
+        .agy-shell [data-testid="agent-response"] :is(p, li, span, code, h1, h2, h3, h4, strong, td, th),
+        .agy-shell .animate-shimmer-text {
           color: ${uiInk};
+        }
+        .agy-shell .bg-sidebar .text-muted-foreground,
+        .agy-shell [data-testid="conversation-list-sidebar"] .text-muted-foreground,
+        .agy-shell [data-side-panel-body="true"] .text-muted-foreground {
+          color: ${uiMuted};
+        }
+        body:not([data-has-browser-hole="true"]) .agy-shell [data-side-panel-body="true"] {
+          background-color: rgba(${overlayRgb}, ${Math.min(0.62, aiCardAlpha * 0.72).toFixed(3)}) !important;
+        }
+        .agy-shell .surface-composer [contenteditable="true"],
+        .agy-shell .surface-composer :is(textarea, input) {
+          color: ${uiInk} !important;
+          caret-color: ${accent} !important;
+        }
+        .agy-shell .surface-composer :is(p.pointer-events-none, [data-placeholder]),
+        .agy-shell .surface-composer :is(textarea, input)::placeholder {
+          color: #475569 !important;
+          opacity: 1 !important;
         }
       `
           : ''
@@ -588,6 +660,12 @@ export function buildStylesheet(config, customMedia = {}) {
         color: color-mix(in srgb, ${accent} 70%, ${uiMuted}) !important;
         font-weight: 600 !important;
         letter-spacing: 0.02em !important;
+      }
+      body.agy-ct-active .agy-overlay :is(.text-foreground, .text-card-foreground, .text-popover-foreground) {
+        color: ${uiInk} !important;
+      }
+      body.agy-ct-active .agy-overlay :is(.text-secondary-foreground, .text-muted-foreground) {
+        color: ${uiMuted} !important;
       }
       body.agy-ct-active .agy-overlay .from-card {
         background: none !important;
@@ -825,8 +903,8 @@ export function buildStylesheet(config, customMedia = {}) {
       bottom: calc(100% + 8px);
       left: 50%;
       transform: translateX(-50%) translateY(4px);
-      background: #14161f;
-      color: #f8fafc;
+      background: ${isLight ? '#fffbeb' : '#14161f'};
+      color: ${isLight ? '#0f172a' : '#f8fafc'};
       border: 1px solid var(--agy-ct-accent);
       border-radius: 8px;
       padding: 5px 9px;
@@ -835,6 +913,7 @@ export function buildStylesheet(config, customMedia = {}) {
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.2s ease, transform 0.2s ease;
+      ${isLight ? 'box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14);' : ''}
     }
     .agy-ct-pet-speech.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
     .agy-ct-pet-burst {
@@ -882,12 +961,13 @@ export function buildStylesheet(config, customMedia = {}) {
       gap: 6px;
       padding: 6px 12px;
       border-radius: 8px;
-      background: #181a24;
-      color: #f4f4f5;
-      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: ${isLight ? '#fffbeb' : '#181a24'};
+      color: ${isLight ? '#0f172a' : '#f4f4f5'};
+      border: 1px solid ${isLight ? 'rgba(15, 23, 42, 0.18)' : 'rgba(255, 255, 255, 0.16)'};
       font-size: 12px;
       font-weight: 500;
       cursor: pointer;
+      ${isLight ? 'box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);' : ''}
     }
     #agy-ct-launcher:hover { border-color: var(--agy-ct-accent); }
     ${

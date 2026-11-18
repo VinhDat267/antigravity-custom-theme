@@ -242,5 +242,21 @@ export const BUBBLE_PRESETS = [
     scrollCaps: true,
     cyberCorners: false,
     cornerOrnament: ''
+  },
+  {
+    id: 'gear5-nika',
+    name: 'Gear 5 (Thần Mặt Trời Nika)',
+    nameEn: 'Gear 5 (Sun God Nika)',
+    bg: 'linear-gradient(135deg, rgba(24, 20, 44, 0.92), rgba(44, 30, 68, 0.92))',
+    border: '1.5px solid rgba(233, 213, 255, 0.62)',
+    frameBg: 'linear-gradient(135deg, #f8fafc, #c084fc)',
+    text: '#faf5ff',
+    shadow: '0 4px 20px rgba(0, 0, 0, 0.48), 0 0 18px rgba(192, 132, 252, 0.28)',
+    radius: '18px',
+    mascotId: 'luffy-gear5',
+    mascotAlign: 'right-top',
+    scrollCaps: false,
+    cyberCorners: false,
+    cornerOrnament: 'gold'
   }
 ];

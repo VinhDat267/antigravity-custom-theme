@@ -115,10 +115,12 @@ test('bubble, input, accent, atmosphere, and theme bundle presets cross-referenc
 
 test('One Piece wallpapers, mascots, and stickers provide valid SVG markup, slug IDs, and globally unique defs IDs', () => {
   const wpIds = new Set(WALLPAPERS.map((w) => w.id));
-  for (const id of ['one-piece-sunny-sunset', 'one-piece-grand-line-map']) {
+  for (const id of ['one-piece-sunny-sunset', 'one-piece-grand-line-map', 'one-piece-nika-moon']) {
     assert.ok(wpIds.has(id), `Missing wallpaper ${id}`);
     assert.match(id, /^[a-z0-9-]+$/);
-    assert.match(resolveWallpaperUrl({ enabled: true, wallpaperId: id }), /^data:image\/svg\+xml/);
+    const uri = resolveWallpaperUrl({ enabled: true, wallpaperId: id });
+    assert.match(uri, /^data:image\/svg\+xml/);
+    assert.ok(!/(<animate|<style)/i.test(decodeURIComponent(uri)), `Wallpaper ${id} must not embed <animate> or <style> tags`);
   }
 
   for (const petId of ['chopper-chibi', 'thousand-sunny', 'luffy-chibi', 'luffy-gear5']) {
@@ -128,7 +130,10 @@ test('One Piece wallpapers, mascots, and stickers provide valid SVG markup, slug
     assert.match(petSvg, /^<svg[^>]*class="agy-ct-svg-art agy-ct-anim-float"/);
     assert.match(bubbleSvg, /^<svg[^>]*class="agy-ct-svg-art agy-ct-anim-bob"/);
     assert.match(petSvg, /<\/svg>\s*$/);
-    assert.ok(!/url\(#|\bid="/.test(petSvg), `Inline mascot ${petId} must avoid static <defs> IDs so hidden Settings FX previews never break visible SVG fills`);
+    assert.match(bubbleSvg, /<\/svg>\s*$/);
+    assert.ok(!/url\(#|\bid="/.test(petSvg), `Inline mascot ${petId} (pet) must avoid static <defs> IDs so hidden Settings FX previews never break visible SVG fills`);
+    assert.ok(!/url\(#|\bid="/.test(bubbleSvg), `Inline mascot ${petId} (bubble) must avoid static <defs> IDs so hidden Settings FX previews never break visible SVG fills`);
+    assert.ok(!/(<animate|<style)/i.test(petSvg), `Inline mascot ${petId} must avoid <animate> and <style> tags`);
   }
 
   for (const stId of ['mu-rom', 'jolly-roger', 'log-pose']) {
@@ -137,13 +142,16 @@ test('One Piece wallpapers, mascots, and stickers provide valid SVG markup, slug
     assert.match(svg, /^<svg[^>]*class="agy-ct-svg-art"[^>]*viewBox="0 0 64 64"/);
     assert.match(svg, /<\/svg>\s*$/);
     assert.ok(!/url\(#|\bid="/.test(svg), `Inline sticker ${stId} must avoid static <defs> IDs so hidden Settings FX previews never break visible SVG fills`);
+    assert.ok(!/(<animate|<style)/i.test(svg), `Inline sticker ${stId} must avoid <animate> and <style> tags`);
   }
 
   const seenDefIds = new Set();
   const svgSources = [
     ...WALLPAPERS.map((w) => decodeURIComponent(w.embeddedDataUri || '')),
     ...Object.keys(MASCOT_TEMPLATES).map((id) => renderMascotSvg(id, 'pet')),
-    ...Object.values(STICKER_TEMPLATES).map((s) => s.svg)
+    ...Object.values(STICKER_TEMPLATES).map((s) => s.svg),
+    ...Object.values(CORNER_ORNAMENTS).map((u) => decodeURIComponent(u)),
+    decodeURIComponent(renderAgentStarSvg())
   ];
   for (const svg of svgSources) {
     for (const match of svg.matchAll(/\bid="([^"]+)"/g)) {
@@ -154,10 +162,11 @@ test('One Piece wallpapers, mascots, and stickers provide valid SVG markup, slug
   }
 });
 
-test('One Piece dual theme bundles, bubbles, and composer inputs are registered with valid cross-references', () => {
+test('One Piece dual theme bundles, Gear 5 Nika bundle, bubbles, and composer inputs are registered with valid cross-references', () => {
   const byBundleId = Object.fromEntries(THEME_BUNDLES.map((b) => [b.id, b]));
   const sunset = byBundleId['one-piece-sunny-sunset'];
   const bounty = byBundleId['one-piece-grand-line-bounty'];
+  const nika = byBundleId['one-piece-gear5-nika'];
 
   assert.ok(sunset, 'Missing one-piece-sunny-sunset bundle');
   assert.equal(sunset.patch.isLight, false);
@@ -181,4 +190,21 @@ test('One Piece dual theme bundles, bubbles, and composer inputs are registered 
   assert.ok(lenhTruyNa, 'Missing lenh-truy-na bubble preset');
   assert.equal(lenhTruyNa.scrollCaps, true);
   assert.equal(lenhTruyNa.cornerOrnament, '');
+
+  assert.ok(nika, 'Missing one-piece-gear5-nika bundle');
+  assert.equal(nika.patch.isLight, false);
+  assert.equal(nika.patch.wallpaperId, 'one-piece-nika-moon');
+  assert.equal(nika.patch.bubbleId, 'gear5-nika');
+  assert.equal(nika.patch.inputId, 'nika-liberation');
+  assert.equal(nika.patch.atmosphereId, 'thunder-rain');
+  assert.equal(nika.patch.pet.id, 'luffy-gear5');
+
+  const gear5Bubble = BUBBLE_PRESETS.find((b) => b.id === 'gear5-nika');
+  assert.ok(gear5Bubble, 'Missing gear5-nika bubble preset');
+  assert.equal(gear5Bubble.mascotId, 'luffy-gear5');
+  assert.equal(gear5Bubble.scrollCaps, false);
+  assert.equal(gear5Bubble.cornerOrnament, 'gold');
+
+  const nikaInput = INPUT_PRESETS.find((i) => i.id === 'nika-liberation');
+  assert.ok(nikaInput, 'Missing nika-liberation input preset');
 });

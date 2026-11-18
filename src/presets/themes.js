@@ -1,5 +1,5 @@
 /**
- * Curated Accent Swatches, Weather Atmospheres & 8 Full Theme Bundles.
+ * Curated Accent Swatches, Weather Atmospheres & 11 Full Theme Bundles.
  */
 
 export const ACCENT_COLORS = [
@@ -312,6 +312,37 @@ export const THEME_BUNDLES = [
         items: [
           { id: 'log-pose', slot: 'input-top-right', size: 50, glow: false, opacity: 95 },
           { id: 'mu-rom', slot: 'input-top-left', size: 46, glow: false, opacity: 94 }
+        ]
+      }
+    }
+  },
+  {
+    id: 'one-piece-gear5-nika',
+    name: 'Luffy Gear 5 (Thần Mặt Trời Nika)',
+    nameEn: 'Luffy Gear 5 (Sun God Nika)',
+    subtitle: 'Trăng Giải Phóng + Mưa & Tia Sét + Gear 5 Luffy',
+    subtitleEn: 'Nika Full Moon + Thunder & Rain + Gear 5 Luffy',
+    badge: 'One Piece · Nika',
+    patch: {
+      isLight: false,
+      wallpaperId: 'one-piece-nika-moon',
+      dimming: 26,
+      wpBlur: 0,
+      glassBlur: 4,
+      surfaces: { sidebarOpacity: 50, headerOpacity: 42, aiCardOpacity: 64, codeOpacity: 62 },
+      accentColor: '#e9d5ff',
+      secondaryColor: '#f5c451',
+      overlayRgb: '15, 13, 28',
+      atmosphereId: 'thunder-rain',
+      atmosphereIntensity: 62,
+      bubbleId: 'gear5-nika',
+      inputId: 'nika-liberation',
+      pet: { enabled: true, id: 'luffy-gear5', size: 90, mode: 'float', opacity: 96, pos: { xPct: 22, yPct: 14 }, showSpeechOnClick: true },
+      stickers: {
+        enabled: true,
+        items: [
+          { id: 'jolly-roger', slot: 'input-top-right', size: 50, glow: true, opacity: 96 },
+          { id: 'mu-rom', slot: 'input-top-left', size: 46, glow: true, opacity: 94 }
         ]
       }
     }

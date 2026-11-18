@@ -87,6 +87,7 @@ export const INPUT_PRESETS = [
     id: 'frosted-lotus-light',
     name: 'Kính Sáng Lotus',
     nameEn: 'Frosted Lotus Light',
+    isLight: true,
     bg: 'linear-gradient(145deg, rgba(255, 252, 240, 0.9), rgba(242, 236, 188, 0.88))',
     border: '1.5px solid rgba(77, 105, 155, 0.35)',
     focusBorder: '#4d699b',
@@ -107,10 +108,21 @@ export const INPUT_PRESETS = [
     id: 'hai-do-co',
     name: 'Hải Đồ Giấy Cổ (Sáng)',
     nameEn: 'Grand Line Chart (Light)',
+    isLight: true,
     bg: 'linear-gradient(145deg, rgba(252, 246, 228, 0.94), rgba(240, 227, 194, 0.92))',
     border: '1.5px solid rgba(146, 64, 14, 0.36)',
     focusBorder: '#d7474b',
     shadow: '0 6px 20px rgba(69, 39, 19, 0.14)',
     radius: '14px'
+  },
+  {
+    id: 'nika-liberation',
+    name: 'Trống Giải Phóng Nika',
+    nameEn: 'Nika Liberation Drums',
+    bg: 'linear-gradient(145deg, rgba(20, 18, 38, 0.92), rgba(38, 28, 62, 0.9))',
+    border: '1.5px solid rgba(233, 213, 255, 0.56)',
+    focusBorder: '#f5c451',
+    shadow: '0 6px 24px rgba(0, 0, 0, 0.48), 0 0 18px rgba(192, 132, 252, 0.24)',
+    radius: '16px'
   }
 ];

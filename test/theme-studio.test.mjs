@@ -295,3 +295,48 @@ test('Bundle ThemeStudio close button restores native Settings panes without lea
     fs.rmSync(tmpOut, { force: true });
   }
 });
+
+test('ThemeStudio Chat tab renders readable dark text inside light input preset previews', () => {
+  const origDoc = globalThis.document;
+  const { doc } = createDomStubEnvironment();
+  globalThis.document = doc;
+
+  try {
+    const studio = new ThemeStudio({
+      getConfig: () => ({ ...DEFAULT_CONFIG, lang: 'en' }),
+      getCustomMedia: () => ({}),
+      onPatch: () => {},
+      onLiveUpdate: () => {},
+      onBundleApply: () => {},
+      onReset: () => {},
+      onUploadMedia: () => {},
+      onDeleteMedia: () => {},
+      onClearUnusedMedia: () => {},
+      onStartPicker: () => {},
+      onClose: () => {}
+    });
+
+    studio.open('chat');
+    const root = studio.getElement();
+
+    const findInputButton = (label) =>
+      findFirst(root, (el) => el.tagName === 'BUTTON' && el.className.includes('agy-ct-item-card') && findFirst(el, (c) => c.tagName === 'SPAN' && c.textContent === label));
+
+    for (const lightLabel of ['Frosted Lotus Light', 'Grand Line Chart (Light)']) {
+      const btn = findInputButton(lightLabel);
+      assert.ok(btn, `Expected input preset button for ${lightLabel}`);
+      const preview = findFirst(btn, (el) => el.tagName === 'DIV' && el.textContent === 'Ask anything...');
+      assert.ok(preview, `Expected Ask anything... preview in ${lightLabel}`);
+      assert.ok(!preview.style.cssText.includes('#9ca3af'), `${lightLabel} preview must not use low-contrast #9ca3af text`);
+      assert.ok(/#475569|#334155|#0f172a|#1e293b/i.test(preview.style.cssText), `${lightLabel} preview must use dark slate ink`);
+    }
+
+    const darkBtn = findInputButton('Sunny Sunset Deck');
+    assert.ok(darkBtn, 'Expected Sunny Sunset Deck input button');
+    const darkPreview = findFirst(darkBtn, (el) => el.tagName === 'DIV' && el.textContent === 'Ask anything...');
+    assert.ok(darkPreview, 'Expected Ask anything... preview in Sunny Sunset Deck');
+    assert.ok(darkPreview.style.cssText.includes('#9ca3af') || darkPreview.style.cssText.includes('#cbd5e1'), 'Dark input preview should keep light muted text');
+  } finally {
+    globalThis.document = origDoc;
+  }
+});
