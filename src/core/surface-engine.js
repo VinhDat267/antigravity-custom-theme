@@ -24,7 +24,12 @@ import {
 const SE_STYLE_ID = 'agy-ct-styles';
 
 function seSafeCssUrl(url) {
-  return String(url || '').replace(/"/g, '\\"').replace(/[\r\n]/g, '');
+  return String(url || '')
+    .replace(/\0/g, '')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/[\r\n]/g, '')
+    .replace(/<\/style/gi, '');
 }
 
 export function buildStylesheet(config, customMedia = {}) {
@@ -59,7 +64,10 @@ export function buildStylesheet(config, customMedia = {}) {
   const pillText = isLight ? '#0f172a' : '#f8fafc';
   const pillBorder = isLight ? 'rgba(15, 23, 42, 0.16)' : 'rgba(255, 255, 255, 0.16)';
 
-  const wpPos = cfg.wallpaperPos || 'center center';
+  const rawWpPos = typeof cfg.wallpaperPos === 'string' ? cfg.wallpaperPos.trim() : '';
+  const wpPos = /^(?:left|center|right|\d+%)\s+(?:top|center|bottom|\d+%)$/.test(rawWpPos)
+    ? rawWpPos
+    : 'center center';
   const wpFit = cfg.wallpaperFit === 'contain' ? 'contain' : 'cover';
 
   const scrollCapCss = bubble.scrollCaps
@@ -616,16 +624,18 @@ export function buildStylesheet(config, customMedia = {}) {
 }
 
 export class SurfaceEngine {
-  constructor({ getConfig, getCustomMedia, onCustomNavClick, onNativeNavClick, onConfigPatch, studioElement }) {
+  constructor({ getConfig, getCustomMedia, onCustomNavClick, onNativeNavClick, onConfigPatch, onHoleChange, studioElement }) {
     this.getConfig = getConfig;
     this.getCustomMedia = getCustomMedia;
     this.onCustomNavClick = onCustomNavClick;
     this.onNativeNavClick = onNativeNavClick;
     this.onConfigPatch = onConfigPatch;
+    this.onHoleChange = onHoleChange;
     this.studioElement = studioElement || null;
 
     this.observer = null;
     this.resizeObserver = null;
+    this.observedHoleEl = null;
     this.rafId = 0;
     this.isCustomSettingsOpen = false;
     this.activeContentPane = null;
@@ -736,10 +746,12 @@ export class SurfaceEngine {
     shell.style.setProperty('--agy-sidebar-w', `${sw}px`);
     shell.style.setProperty('--agy-hdr-h', `${Math.max(0, hdrH)}px`);
 
+    const prevHoleKey = `${Boolean(this.holeState?.active)}:${this.holeState?.clipPath || 'none'}`;
     const hasHole = document.body.getAttribute('data-has-browser-hole') === 'true';
     const holeEl = hasHole ? shell.querySelector('[data-browser-hole]:not([data-browser-hole="false"])') : null;
     const nextHole = computeBrowserHoleClip(shellRect, holeEl ? holeEl.getBoundingClientRect() : null, hasHole);
     this.holeState = nextHole;
+    const nextHoleKey = `${Boolean(nextHole.active)}:${nextHole.clipPath || 'none'}`;
 
     const bgRoot = document.getElementById('agy-ct-bg-root');
     const ambientCanvas = document.getElementById('agy-ct-ambient-canvas');
@@ -762,7 +774,19 @@ export class SurfaceEngine {
       this.resizeObserver = new ResizeObserver(() => this.syncShellAndHoleMetrics(this.getConfig()));
       this.resizeObserver.observe(shell);
       if (sidebar) this.resizeObserver.observe(sidebar);
-      if (holeEl) this.resizeObserver.observe(holeEl);
+    }
+    if (this.resizeObserver && holeEl !== this.observedHoleEl) {
+      if (this.observedHoleEl) {
+        this.resizeObserver.unobserve?.(this.observedHoleEl);
+      }
+      this.observedHoleEl = holeEl || null;
+      if (this.observedHoleEl) {
+        this.resizeObserver.observe(this.observedHoleEl);
+      }
+    }
+
+    if (nextHoleKey !== prevHoleKey) {
+      this.onHoleChange?.(nextHole);
     }
   }
 

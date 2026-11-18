@@ -111,7 +111,7 @@ class CustomThemeController {
         this.surface?.startVisualPicker(key, label, () => this.openSettings('advanced'));
       },
       onClose: () => {
-        this.closeFallbackModal();
+        this.closeSettings();
       }
     });
 
@@ -121,6 +121,11 @@ class CustomThemeController {
       onCustomNavClick: () => this.studio?.open(),
       onNativeNavClick: () => this.studio?.clearView(),
       onConfigPatch: (patch) => this.updateConfig(patch, true),
+      onHoleChange: (holeState) => {
+        this.ambient?.setHoleClip(holeState?.active ? holeState.clipPath : 'none');
+        this.petStage?.update();
+        this.stickerLayer?.repositionAll();
+      },
       studioElement: this.studio.getElement()
     });
 

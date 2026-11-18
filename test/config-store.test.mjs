@@ -118,6 +118,35 @@ test('sanitizeImportedConfig clamps bounds, strips local OS paths, and neutraliz
   assert.ok(!/[A-Za-z]:\\/.test(exported));
 });
 
+test('sanitizeImportedConfig sanitizes customBundles entries and drops malformed items', () => {
+  const sanitized = sanitizeImportedConfig({
+    customBundles: [
+      null,
+      { id: 123, name: 'Bad' },
+      {
+        id: 'my-bundle',
+        name: 'My Bundle',
+        patch: {
+          dimming: 999,
+          wallpaperId: 'C:\\Users\\Secret\\bg.png',
+          wallpaperPos: 'center; background: red',
+          customCss: 'a{}</style><script>alert(1)</script>',
+          accentColor: 'not-a-color'
+        }
+      }
+    ]
+  });
+
+  assert.equal(sanitized.customBundles.length, 1);
+  const [b] = sanitized.customBundles;
+  assert.equal(b.id, 'my-bundle');
+  assert.equal(b.patch.dimming, 92);
+  assert.equal(b.patch.wallpaperId, '');
+  assert.equal(b.patch.wallpaperPos, DEFAULT_CONFIG.wallpaperPos);
+  assert.ok(!/<\/style/i.test(b.patch.customCss));
+  assert.equal(b.patch.accentColor, DEFAULT_CONFIG.accentColor);
+});
+
 test('saveConfig, resetConfig, and custom media methods emit __agyThemeBridge payloads', async () => {
   assert.deepEqual(MEDIA_SLOTS, ['wallpaper', 'wallpaperLight', 'userAvatar', 'agentAvatar', 'pet', 'sticker']);
   const win = createMockWindow({

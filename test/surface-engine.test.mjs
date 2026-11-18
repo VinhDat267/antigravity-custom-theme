@@ -99,3 +99,110 @@ test('syncPrebakedGlass clears property safely when disabled or running headless
   assert.ok(removed.includes('--agy-l-glass-bg'));
   assert.equal(typeof SurfaceEngine, 'function');
 });
+
+test('buildStylesheet escapes backslashes in CSS URLs and rejects invalid wallpaperPos injection', () => {
+  const css = buildStylesheet(
+    {
+      ...DEFAULT_CONFIG,
+      enabled: true,
+      wallpaperId: 'custom',
+      wallpaperPos: 'center; background: red; /*'
+    },
+    {
+      wallpaper: 'data:image/webp;base64,ABC\\"</style><script>alert(1)</script>'
+    }
+  );
+  assertBalancedCssBraces(css);
+  assert.ok(!/<\/style/i.test(css));
+  assert.ok(!css.includes('background: red'));
+  assert.ok(css.includes('\\\\\\"'), 'Trailing backslash + quote inside url(...) must both be escaped');
+});
+
+test('SurfaceEngine observes late-opened [data-browser-hole] elements and notifies onHoleChange', () => {
+  const origDoc = globalThis.document;
+  const origWin = globalThis.window;
+  const origResizeObserver = globalThis.ResizeObserver;
+  const origMutationObserver = globalThis.MutationObserver;
+  const origRaf = globalThis.requestAnimationFrame;
+
+  const observed = [];
+  const unobserved = [];
+  let hasHoleAttr = 'false';
+  let holeEl = null;
+
+  const makeStyle = () => ({
+    setProperty() {},
+    removeProperty() {}
+  });
+  const shellEl = {
+    style: makeStyle(),
+    attributes: {},
+    setAttribute(k, v) {
+      this.attributes[k] = v;
+    },
+    removeAttribute(k) {
+      delete this.attributes[k];
+    },
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 1400, height: 900, right: 1400, bottom: 900 }),
+    querySelector: (sel) => (sel.includes('data-browser-hole') ? holeEl : null)
+  };
+  const bodyEl = {
+    classList: { add() {}, remove() {} },
+    getAttribute: (k) => (k === 'data-has-browser-hole' ? hasHoleAttr : null),
+    prepend() {},
+    appendChild() {}
+  };
+
+  globalThis.ResizeObserver = class {
+    observe(el) {
+      observed.push(el);
+    }
+    unobserve(el) {
+      unobserved.push(el);
+    }
+    disconnect() {}
+  };
+  globalThis.MutationObserver = class {
+    observe() {}
+    disconnect() {}
+  };
+  globalThis.requestAnimationFrame = () => 1;
+  globalThis.window = {
+    addEventListener() {},
+    removeEventListener() {}
+  };
+  globalThis.document = {
+    documentElement: { classList: { add() {}, remove() {} }, style: makeStyle() },
+    body: bodyEl,
+    head: { appendChild() {} },
+    getElementById: () => ({ style: makeStyle(), textContent: '' }),
+    querySelector: (sel) => (sel.includes('.agy-shell') ? shellEl : null),
+    querySelectorAll: () => []
+  };
+
+  try {
+    const holeEvents = [];
+    const engine = new SurfaceEngine({
+      getConfig: () => DEFAULT_CONFIG,
+      getCustomMedia: () => ({}),
+      onHoleChange: (hs) => holeEvents.push(hs)
+    });
+    engine.mount();
+    assert.equal(observed.includes(holeEl), false);
+
+    // Late-open Split-Browser hole
+    hasHoleAttr = 'true';
+    holeEl = {
+      getBoundingClientRect: () => ({ left: 700, top: 40, width: 700, height: 860, right: 1400, bottom: 900 })
+    };
+    engine.syncShellAndHoleMetrics(DEFAULT_CONFIG);
+    assert.equal(observed.includes(holeEl), true, 'ResizeObserver must observe late-opened [data-browser-hole]');
+    assert.ok(holeEvents.some((ev) => ev.active === true), 'onHoleChange must fire when hole activates');
+  } finally {
+    globalThis.document = origDoc;
+    globalThis.window = origWin;
+    globalThis.ResizeObserver = origResizeObserver;
+    globalThis.MutationObserver = origMutationObserver;
+    globalThis.requestAnimationFrame = origRaf;
+  }
+});

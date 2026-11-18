@@ -147,7 +147,7 @@ function csSanitizeStickerItems(items) {
     }));
 }
 
-export function sanitizeImportedConfig(rawObj) {
+function csSanitizeConfigCore(rawObj) {
   const src = rawObj && typeof rawObj === 'object' && !Array.isArray(rawObj) ? rawObj : {};
   const d = csDeepClone(DEFAULT_CONFIG);
 
@@ -232,8 +232,53 @@ export function sanitizeImportedConfig(rawObj) {
     customSelectors: sanitizeSelectorMap(src.customSelectors),
     hiddenWallpapers: sanitizeIdList(src.hiddenWallpapers),
     hiddenStickers: sanitizeIdList(src.hiddenStickers),
-    hiddenPets: sanitizeIdList(src.hiddenPets),
-    customBundles: Array.isArray(src.customBundles) ? csDeepClone(src.customBundles).slice(0, 24) : [],
+    hiddenPets: sanitizeIdList(src.hiddenPets)
+  };
+}
+
+function csSanitizeBundlePatch(rawPatch) {
+  if (!rawPatch || typeof rawPatch !== 'object' || Array.isArray(rawPatch)) return {};
+  const sanitized = csSanitizeConfigCore(rawPatch);
+  const patch = {};
+  for (const key of Object.keys(rawPatch)) {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+    if (key === 'customBundles' || key === '__savedAt') continue;
+    if (Object.prototype.hasOwnProperty.call(sanitized, key)) {
+      patch[key] = sanitized[key];
+    }
+  }
+  return patch;
+}
+
+export function sanitizeImportedConfig(rawObj) {
+  const src = rawObj && typeof rawObj === 'object' && !Array.isArray(rawObj) ? rawObj : {};
+  const core = csSanitizeConfigCore(src);
+
+  const sanitizeCustomBundles = (bundles) => {
+    if (!Array.isArray(bundles)) return [];
+    const out = [];
+    for (const item of bundles) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+      if (typeof item.id !== 'string') continue;
+      const cleanId = csCleanString(item.id, '').slice(0, 80);
+      if (!cleanId) continue;
+      out.push({
+        id: cleanId,
+        name: csCleanString(item.name, cleanId).slice(0, 80),
+        nameEn: csCleanString(item.nameEn, csCleanString(item.name, cleanId)).slice(0, 80),
+        subtitle: csCleanString(item.subtitle, '').slice(0, 120),
+        subtitleEn: csCleanString(item.subtitleEn, '').slice(0, 120),
+        badge: csCleanString(item.badge, 'Custom').slice(0, 32),
+        patch: csSanitizeBundlePatch(item.patch)
+      });
+      if (out.length >= 24) break;
+    }
+    return out;
+  };
+
+  return {
+    ...core,
+    customBundles: sanitizeCustomBundles(src.customBundles),
     __savedAt: Number.isFinite(Number(src.__savedAt)) ? Number(src.__savedAt) : 0
   };
 }

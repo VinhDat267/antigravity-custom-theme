@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import {
   getDaemonStatus,
   isNodeProcessAlive,
+  readDaemonCommandAck,
   readDaemonPid,
   runDaemon,
   runOneShotCommand,
@@ -184,15 +185,23 @@ async function main() {
     const wipeData = args.includes('--wipe');
     const status = getDaemonStatus({ rootDir: ROOT_DIR, userDataDir: USER_DATA_DIR });
     if (status.running) {
-      writeDaemonCommand(USER_DATA_DIR, 'reset');
-      await new Promise((r) => setTimeout(r, 350));
+      const issued = writeDaemonCommand(USER_DATA_DIR, 'reset', { wipeData });
+      const acked = await waitFor(() => readDaemonCommandAck(USER_DATA_DIR)?.nonce === issued.nonce, 3000, 60);
+      if (!acked) {
+        await runOneShotCommand({
+          rootDir: ROOT_DIR,
+          userDataDir: USER_DATA_DIR,
+          cmd: 'reset',
+          wipeData
+        });
+      }
       if (wipeData) {
         const cfgPath = path.join(USER_DATA_DIR, 'config.json');
         if (fs.existsSync(cfgPath)) fs.unlinkSync(cfgPath);
         const mediaDir = path.join(USER_DATA_DIR, 'media');
         if (fs.existsSync(mediaDir)) fs.rmSync(mediaDir, { recursive: true, force: true });
       }
-      console.log('Sent reset command to running CDP daemon.');
+      console.log(`Reset completed on open Antigravity windows (${acked ? 'daemon-acked' : 'one-shot-fallback'}).`);
       return;
     }
     const res = await runOneShotCommand({

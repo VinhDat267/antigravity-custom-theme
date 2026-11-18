@@ -102,6 +102,7 @@ export class ThemeStudio {
 
     this.activeTab = 'presets';
     this.showImportBox = false;
+    this.importDraft = '';
     this.importError = '';
     this.presetPromptOpen = false;
     this.confirmResetPending = false;
@@ -252,20 +253,35 @@ export class ThemeStudio {
       className: 'agy-ct-textarea',
       placeholder: '{"wallpaperId":"kanagawa-wave","dimming":28}'
     });
+    importText.value = this.importDraft || '';
+    importText.addEventListener('input', () => {
+      this.importDraft = importText.value;
+    });
+
+    const openExportFallback = (json) => {
+      this.showImportBox = true;
+      this.importDraft = json;
+      this.importError = '';
+      this.render();
+    };
 
     exportBtn.addEventListener('click', () => {
       const json = exportPortableConfig(cfg);
-      if (navigator.clipboard?.writeText) {
-        navigator.clipboard.writeText(json).then(() => {
-          exportBtn.textContent = t(lang, 'copied');
-          setTimeout(() => {
-            exportBtn.textContent = t(lang, 'exportJson');
-          }, 1400);
-        });
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        try {
+          Promise.resolve(navigator.clipboard.writeText(json))
+            .then(() => {
+              exportBtn.textContent = t(lang, 'copied');
+              setTimeout(() => {
+                exportBtn.textContent = t(lang, 'exportJson');
+              }, 1400);
+            })
+            .catch(() => openExportFallback(json));
+        } catch {
+          openExportFallback(json);
+        }
       } else {
-        this.showImportBox = true;
-        importText.value = json;
-        this.render();
+        openExportFallback(json);
       }
     });
 
@@ -347,6 +363,7 @@ export class ThemeStudio {
             const parsed = JSON.parse(importText.value.trim());
             const clean = sanitizeImportedConfig(parsed);
             this.showImportBox = false;
+            this.importDraft = '';
             this.importError = '';
             this.onPatch(clean);
           } catch (err) {

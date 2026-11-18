@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { buildBundle, stripDeletedWallpapers } from '../scripts/build.mjs';
+import { sanitizeImportedConfig } from '../src/core/config-store.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -116,13 +117,16 @@ export function persistBridgeMessage(userDataDir, rawJson) {
     if (!msg.data || typeof msg.data !== 'object' || Array.isArray(msg.data)) return null;
     const configPath = path.join(userDataDir, 'config.json');
     const existing = readJsonSafe(configPath);
+    const hasValidTs = Number.isFinite(Number(msg.data.__savedAt));
+    const nextTs = hasValidTs ? Number(msg.data.__savedAt) : 0;
     if (existing) {
       if (msg.type === 'config-init') return null;
       const prevTs = Number(existing.__savedAt || 0);
-      const nextTs = Number(msg.data.__savedAt || 0);
+      if (!hasValidTs && prevTs > 0) return null;
       if (nextTs < prevTs) return null;
     }
-    atomicWriteFile(configPath, JSON.stringify(msg.data, null, 2));
+    const clean = sanitizeImportedConfig(msg.data);
+    atomicWriteFile(configPath, JSON.stringify(clean, null, 2));
     return 'config';
   }
 
@@ -133,7 +137,7 @@ export function persistBridgeMessage(userDataDir, rawJson) {
       if (fs.existsSync(slotPath)) fs.unlinkSync(slotPath);
       return 'media';
     }
-    if (typeof msg.dataUrl === 'string' && msg.dataUrl.startsWith('data:')) {
+    if (typeof msg.dataUrl === 'string' && /^data:image\//i.test(msg.dataUrl)) {
       atomicWriteFile(slotPath, msg.dataUrl);
       return 'media';
     }
@@ -144,20 +148,32 @@ export function persistBridgeMessage(userDataDir, rawJson) {
 }
 
 export function loadBootPayload(userDataDir) {
-  const config = readJsonSafe(path.join(userDataDir, 'config.json'));
+  const rawConfig = readJsonSafe(path.join(userDataDir, 'config.json'));
+  const config = rawConfig ? sanitizeImportedConfig(rawConfig) : null;
   const media = {};
   for (const slot of VALID_MEDIA_SLOTS) {
     const slotPath = path.join(userDataDir, 'media', `${slot}.dat`);
     try {
       if (fs.existsSync(slotPath)) {
         const val = fs.readFileSync(slotPath, 'utf8').trim();
-        if (val.startsWith('data:')) media[slot] = val;
+        if (/^data:image\//i.test(val)) media[slot] = val;
       }
     } catch {
       // Skip unreadable slot
     }
   }
   return { config, media };
+}
+
+export function ackDaemonCommand(userDataDir, nonce, extra = {}) {
+  if (typeof nonce !== 'string' || !nonce) return null;
+  const ack = { ...extra, nonce, at: Date.now() };
+  atomicWriteFile(path.join(userDataDir, 'daemon-cmd-ack.json'), JSON.stringify(ack, null, 2));
+  return ack;
+}
+
+export function readDaemonCommandAck(userDataDir) {
+  return readJsonSafe(path.join(userDataDir, 'daemon-cmd-ack.json'));
 }
 
 export function writeDaemonCommand(userDataDir, cmd, extra = {}) {
@@ -507,7 +523,7 @@ export async function injectTarget(session, { rootDir = DEFAULT_ROOT_DIR, userDa
   return { injected: Boolean(mounted), reason: mounted ? 'ok' : 'not-mounted' };
 }
 
-export async function teardownTarget(session, state = null) {
+export async function teardownTarget(session, state = null, { wipeData = false } = {}) {
   if (Array.isArray(state?.newDocScriptIds)) {
     for (const sid of state.newDocScriptIds) {
       await session.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: sid }).catch(() => {});
@@ -515,8 +531,16 @@ export async function teardownTarget(session, state = null) {
     state.newDocScriptIds = [];
   }
 
+  const wipeExpr = wipeData
+    ? `
+      try { localStorage.removeItem('agy_custom_theme_v1'); } catch {}
+      try { indexedDB.deleteDatabase('agy_custom_theme_media_v1'); } catch {}
+    `
+    : '';
+
   await session.evalExpr(`(() => {
     try { window.__AGY_CUSTOM_THEME__?.destroy?.(); } catch {}
+    ${wipeExpr}
     document.querySelectorAll('[data-agy-ct-injected], #agy-ct-styles, #agy-ct-studio-root').forEach((el) => el.remove());
     document.querySelectorAll('.agy-ct-bubble-styled, .agy-ct-input-styled').forEach((el) => {
       el.classList.remove('agy-ct-bubble-styled', 'agy-ct-input-styled');
@@ -611,7 +635,7 @@ export async function runOneShotCommand({
       const hasShell = await isShellTarget(session);
       if (!hasShell) continue;
       if (cmd === 'reset') {
-        await teardownTarget(session);
+        await teardownTarget(session, null, { wipeData });
         affected += 1;
       } else if (cmd === 'open-settings') {
         const opened = await session.evalExpr(
@@ -811,17 +835,28 @@ export async function runDaemon({
     writeLog(`Executing command: ${command.cmd}`);
     if (command.cmd === 'reinject') {
       await syncTargets(true);
+      ackDaemonCommand(resolvedUserDir, command.nonce, { ok: true, cmd: 'reinject' });
     } else if (command.cmd === 'open-settings') {
       for (const [, entry] of sessions) {
         await entry.session
           .evalExpr(`window.__AGY_CUSTOM_THEME__?.openSettings(${JSON.stringify(command.tab || null)})`)
           .catch(() => {});
       }
+      ackDaemonCommand(resolvedUserDir, command.nonce, { ok: true, cmd: 'open-settings' });
     } else if (command.cmd === 'reset') {
+      const wipeData = Boolean(command.wipeData);
       for (const [, entry] of sessions) {
-        await teardownTarget(entry.session, entry.state);
+        await teardownTarget(entry.session, entry.state, { wipeData });
       }
+      if (wipeData) {
+        const cfgPath = path.join(resolvedUserDir, 'config.json');
+        if (fs.existsSync(cfgPath)) fs.unlinkSync(cfgPath);
+        const mediaDir = path.join(resolvedUserDir, 'media');
+        if (fs.existsSync(mediaDir)) fs.rmSync(mediaDir, { recursive: true, force: true });
+      }
+      ackDaemonCommand(resolvedUserDir, command.nonce, { ok: true, cmd: 'reset' });
     } else if (command.cmd === 'stop') {
+      ackDaemonCommand(resolvedUserDir, command.nonce, { ok: true, cmd: 'stop' });
       shutdown();
     }
   };

@@ -6,11 +6,14 @@ import path from 'node:path';
 import vm from 'node:vm';
 
 import {
+  ackDaemonCommand,
   buildNewDocumentWrapper,
   resolvePortFile,
   parsePortFileContent,
   filterAntigravityTargets,
   persistBridgeMessage,
+  readDaemonCommandAck,
+  teardownTarget,
   writeDaemonCommand,
   consumeDaemonCommand
 } from '../daemon/cdp-daemon.mjs';
@@ -196,4 +199,72 @@ test('buildNewDocumentWrapper defers payload until .agy-shell appears and discon
   assert.equal(disconnected, true);
   assert.equal(clearedTimer, scheduledTimer);
 });
+
+test('persistBridgeMessage sanitizes config payloads, rejects non-finite __savedAt stale writes, and restricts media to data:image/', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-ct-sec-'));
+  try {
+    persistBridgeMessage(
+      tmpDir,
+      JSON.stringify({ type: 'config', data: { __savedAt: 500, dimming: 30, wallpaperId: 'thunder-samurai' } })
+    );
+
+    // NaN __savedAt must NOT overwrite existing timestamped config
+    const badTs = persistBridgeMessage(
+      tmpDir,
+      JSON.stringify({ type: 'config', data: { __savedAt: 'not-a-number', dimming: 10 } })
+    );
+    assert.equal(badTs, null);
+
+    // New valid config must still be sanitized before writing to disk
+    const updated = persistBridgeMessage(
+      tmpDir,
+      JSON.stringify({
+        type: 'config',
+        data: { __savedAt: 600, dimming: 999, customCss: 'a{}</style><script>1</script>' }
+      })
+    );
+    assert.equal(updated, 'config');
+    const saved = JSON.parse(fs.readFileSync(path.join(tmpDir, 'config.json'), 'utf8'));
+    assert.equal(saved.dimming, 92);
+    assert.ok(!/<\/style/i.test(saved.customCss));
+
+    // Reject non-image data URIs
+    assert.equal(
+      persistBridgeMessage(
+        tmpDir,
+        JSON.stringify({ type: 'media', key: 'wallpaper', dataUrl: 'data:text/html,<script>alert(1)</script>' })
+      ),
+      null
+    );
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('ackDaemonCommand and readDaemonCommandAck coordinate reset before stop, and teardownTarget supports wipeData', async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-ct-ack-'));
+  try {
+    const cmd = writeDaemonCommand(tmpDir, 'reset');
+    assert.equal(readDaemonCommandAck(tmpDir)?.nonce, undefined);
+    ackDaemonCommand(tmpDir, cmd.nonce, { ok: true });
+    assert.equal(readDaemonCommandAck(tmpDir)?.nonce, cmd.nonce);
+    assert.equal(readDaemonCommandAck(tmpDir)?.ok, true);
+
+    const evals = [];
+    const mockSession = {
+      send: async () => ({}),
+      evalExpr: async (expr) => {
+        evals.push(expr);
+        return true;
+      }
+    };
+    await teardownTarget(mockSession, null, { wipeData: true });
+    assert.equal(evals.length, 1);
+    assert.ok(evals[0].includes('agy_custom_theme_v1'));
+    assert.ok(evals[0].includes('agy_custom_theme_media_v1'));
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 

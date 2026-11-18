@@ -56,8 +56,10 @@ export function stripDeletedWallpapers(bundleSource, config) {
   let out = String(bundleSource || '');
   for (const id of hidden) {
     if (typeof id !== 'string' || !/^[a-z0-9-]+$/i.test(id)) continue;
-    const pattern = new RegExp(`(id:\\s*(['"])${id}\\2[^{}]*?embeddedDataUri:\\s*)(['"])data:[^'"]*\\3`);
-    out = out.replace(pattern, '$1$3$3');
+    const pattern = new RegExp(
+      `(id:\\s*(['"])${id}\\2[\\s\\S]*?embeddedDataUri:\\s*)(?:'[^']*'|"[^"]*"|wpSvgUri\\(\\s*\`[^\`]*\`\\s*\\))`
+    );
+    out = out.replace(pattern, (_m, prefix) => `${prefix}''`);
   }
   return out;
 }
@@ -101,8 +103,10 @@ export function buildBundle({ rootDir = DEFAULT_ROOT, outFile, moduleFiles = MOD
 
     if (rel === 'assets/wallpapers-manifest.js') {
       for (const [id, dataUri] of Object.entries(diskWallpapers)) {
-        const pattern = new RegExp(`(id:\\s*['"]${id}['"][\\s\\S]*?embeddedDataUri:\\s*)(['"][^'"]*['"]|wpSvgUri\\([^)]*\\))`);
-        code = code.replace(pattern, `$1'${dataUri}'`);
+        const pattern = new RegExp(
+          `(id:\\s*['"]${id}['"][\\s\\S]*?embeddedDataUri:\\s*)(?:'[^']*'|"[^"]*"|wpSvgUri\\(\\s*\`[^\`]*\`\\s*\\))`
+        );
+        code = code.replace(pattern, (_m, prefix) => `${prefix}'${dataUri}'`);
       }
     }
 

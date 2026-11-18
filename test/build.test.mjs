@@ -141,3 +141,60 @@ test('real repo bundle compiles cleanly and aborts mounting on non-shell pages',
   }
 });
 
+test('buildBundle overrides real wpSvgUri entries cleanly and stripDeletedWallpapers removes them from compiled bundle', () => {
+  const repoRoot = path.resolve(import.meta.dirname, '..');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-real-override-'));
+  try {
+    fs.cpSync(path.join(repoRoot, 'src'), path.join(tmpDir, 'src'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, 'assets', 'wallpapers'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'assets', 'wallpapers', 'thunder-samurai.webp'), Buffer.from('DISKWEBP'));
+
+    const res = buildBundle({
+      rootDir: tmpDir,
+      outFile: path.join(tmpDir, 'dist', 'antigravity-theme.js')
+    });
+
+    // Must compile cleanly with zero SyntaxError despite wpSvgUri(`...url(#tsSky)...`)
+    new vm.Script(res.code);
+
+    const stripped = stripDeletedWallpapers(res.code, {
+      hiddenWallpapers: ['thunder-samurai', 'obsidian-nebula']
+    });
+    new vm.Script(stripped);
+
+    const captureCode = stripped.replace(
+      'controller.init();',
+      'globalThis.__CAPTURED_WPS__ = WALLPAPERS; controller.init();'
+    );
+    const sandbox = {
+      document: {
+        readyState: 'complete',
+        body: { classList: { add() {}, remove() {} }, prepend() {}, appendChild() {}, contains: () => false },
+        documentElement: { classList: { add() {}, remove() {} }, style: { setProperty() {}, removeProperty() {} } },
+        head: { appendChild() {} },
+        querySelector: () => null,
+        querySelectorAll: () => [],
+        getElementById: () => null,
+        addEventListener: () => {},
+        removeEventListener: () => {}
+      },
+      innerWidth: 1280,
+      innerHeight: 720,
+      devicePixelRatio: 1,
+      addEventListener: () => {},
+      removeEventListener: () => {}
+    };
+    sandbox.window = sandbox;
+    sandbox.globalThis = sandbox;
+    new vm.Script(captureCode).runInNewContext(sandbox);
+
+    const wps = Object.fromEntries(sandbox.__CAPTURED_WPS__.map((w) => [w.id, w.embeddedDataUri]));
+    assert.equal(wps['thunder-samurai'], '');
+    assert.equal(wps['obsidian-nebula'], '');
+    assert.match(wps['sakura-shrine-night'], /^data:image\/svg\+xml/);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+
