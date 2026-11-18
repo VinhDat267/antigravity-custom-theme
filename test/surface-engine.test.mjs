@@ -225,3 +225,19 @@ test('buildStylesheet neutralizes Monokai bottom/header fades, nested sidebar ba
   assert.ok(css.includes('[data-testid="worked-for-collapsible"]:hover'));
 });
 
+test('buildStylesheet themes Model Selector triggers, portaled .agy-overlay popups, items, and badges in dark and light modes with Zero Live Blur', () => {
+  for (const isLight of [false, true]) {
+    const css = buildStylesheet({ ...DEFAULT_CONFIG, enabled: true, isLight }, {});
+    assertBalancedCssBraces(css);
+    assert.ok(!/backdrop-filter:\s*blur\(/i.test(css));
+
+    assert.ok(css.includes('[data-testid="model-selector-trigger"]'));
+    assert.ok(css.includes('[data-testid="permissions-selector-trigger"]'));
+    assert.ok(css.includes('body.agy-ct-active :is(.agy-overlay'));
+    assert.ok(css.includes('[data-testid="model-selector-header"]'));
+    assert.ok(css.includes('.agy-overlay .agy-overlay-item:is(:hover, [data-highlighted], :focus-visible)'));
+    assert.ok(css.includes('.agy-overlay .agy-overlay-item .bg-secondary.rounded-full'));
+    assert.ok(css.includes('.agy-overlay .from-card'));
+  }
+});
+

@@ -500,6 +500,93 @@ export function buildStylesheet(config, customMedia = {}) {
         background: ${pillHoverBg} !important;
         border-color: ${accent} !important;
       }
+
+      /* Composer Footer Model & Permissions Pills */
+      .agy-composer-footer [data-testid="model-selector-trigger"],
+      .agy-composer-footer [data-testid="permissions-selector-trigger"],
+      .agy-composer-footer button[aria-label="Add context"] {
+        background: color-mix(in srgb, ${accent} 10%, ${pillBg}) !important;
+        color: ${pillText} !important;
+        border: 1px solid color-mix(in srgb, ${accent} 26%, ${pillBorder}) !important;
+        border-radius: 9999px !important;
+        transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease !important;
+      }
+      .agy-composer-footer [data-testid="model-selector-trigger"]:is(:hover, [aria-expanded="true"], [data-popup-open]),
+      .agy-composer-footer [data-testid="permissions-selector-trigger"]:is(:hover, [aria-expanded="true"], [data-popup-open]),
+      .agy-composer-footer button[aria-label="Add context"]:is(:hover, [aria-expanded="true"], [data-popup-open]) {
+        background: color-mix(in srgb, ${accent} 20%, ${pillHoverBg}) !important;
+        border-color: color-mix(in srgb, ${accent} 68%, transparent) !important;
+        box-shadow: 0 0 12px color-mix(in srgb, ${accent} 22%, transparent) !important;
+        color: ${uiInk} !important;
+      }
+
+      /* Portaled Model Selector & Floating .agy-overlay Menus (Zero Live Blur) */
+      html.agy-ct-active body.agy-ct-active :is(.agy-overlay, .agy-overlay.surface-glass, .agy-fastpick.surface-glass, .quick-input-widget.surface-glass) {
+        background: ${
+          isLight
+            ? `linear-gradient(160deg, color-mix(in srgb, ${accent} 8%, rgba(255, 255, 255, 0.97)) 0%, rgba(${overlayRgb}, 0.98) 100%)`
+            : `linear-gradient(160deg, color-mix(in srgb, ${accent} 11%, rgba(${overlayRgb}, 0.96)) 0%, rgba(${overlayRgb}, 0.985) 100%)`
+        } !important;
+        color: ${uiInk} !important;
+        border: 1px solid color-mix(in srgb, ${accent} 34%, ${isLight ? 'rgba(15, 23, 42, 0.14)' : 'rgba(255, 255, 255, 0.14)'}) !important;
+        border-radius: 12px !important;
+        box-shadow:
+          inset 0 1px 0 ${isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(255, 255, 255, 0.1)'},
+          0 18px 42px -10px rgba(0, 0, 0, ${isLight ? '0.18' : '0.72'}),
+          0 0 24px color-mix(in srgb, ${accent} 14%, transparent) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+      body.agy-ct-active .agy-overlay [data-testid="model-selector-header"] {
+        color: color-mix(in srgb, ${accent} 70%, ${uiMuted}) !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.02em !important;
+      }
+      body.agy-ct-active .agy-overlay .from-card {
+        background: none !important;
+        background-image: none !important;
+      }
+      body.agy-ct-active .agy-overlay :is(.bg-border, [role="separator"]) {
+        background-color: color-mix(in srgb, ${accent} 22%, ${isLight ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.08)'}) !important;
+      }
+      body.agy-ct-active .agy-overlay .agy-overlay-item {
+        color: ${uiMuted} !important;
+        border-radius: 8px !important;
+        transition: background 120ms ease, color 120ms ease !important;
+      }
+      body.agy-ct-active .agy-overlay .agy-overlay-item:is(:hover, [data-highlighted], :focus-visible) {
+        background: color-mix(in srgb, ${accent} 18%, ${isLight ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.06)'}) !important;
+        color: ${uiInk} !important;
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, ${accent} 28%, transparent) !important;
+      }
+      body.agy-ct-active [data-testid="model-selector-panel"] .agy-overlay-item.text-foreground,
+      body.agy-ct-active .agy-overlay .agy-overlay-item:is([aria-checked="true"], [data-checked]) {
+        background: color-mix(in srgb, ${accent} 12%, transparent) !important;
+        color: ${uiInk} !important;
+      }
+      body.agy-ct-active [data-testid="model-selector-panel"] .agy-overlay-item.text-foreground > svg:last-child,
+      body.agy-ct-active .agy-overlay .agy-overlay-item:is([aria-checked="true"], [data-checked]) svg {
+        color: ${accent} !important;
+      }
+      body.agy-ct-active .agy-overlay .agy-overlay-item .bg-secondary.rounded-full {
+        background: color-mix(in srgb, ${accent} 18%, ${isLight ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.06)'}) !important;
+        border: 1px solid color-mix(in srgb, ${accent} 34%, transparent) !important;
+        color: ${isLight ? uiInk : `color-mix(in srgb, ${accent} 78%, #ffffff)`} !important;
+        opacity: 1 !important;
+        font-size: 11px !important;
+        line-height: 1.35 !important;
+        padding: 1px 7px !important;
+      }
+      body.agy-ct-active .agy-overlay .bg-secondary:not(.rounded-full) {
+        background: color-mix(in srgb, ${accent} 10%, rgba(${overlayRgb}, 0.65)) !important;
+        border: 1px solid color-mix(in srgb, ${accent} 22%, transparent) !important;
+      }
+      body.agy-ct-active .reactTooltipComponentdark {
+        background: rgba(${overlayRgb}, 0.96) !important;
+        color: ${uiInk} !important;
+        border: 1px solid color-mix(in srgb, ${accent} 30%, rgba(255, 255, 255, 0.14)) !important;
+        border-radius: 8px !important;
+      }
     `
         : ''
     }
