@@ -1,0 +1,161 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  MEDIA_SLOTS,
+  DEFAULT_CONFIG,
+  mergeConfig,
+  sanitizeCssText,
+  sanitizeImportedConfig,
+  exportPortableConfig,
+  loadConfig,
+  saveConfig,
+  resetConfig,
+  loadCustomMediaMap,
+  saveCustomMedia,
+  deleteCustomMedia
+} from '../src/core/config-store.js';
+
+function createMockWindow({ local = {}, boot = null } = {}) {
+  const store = new Map(Object.entries(local));
+  const emitted = [];
+  return {
+    emitted,
+    __AGY_THEME_BOOT__: boot,
+    __agyThemeBridge: (raw) => emitted.push(JSON.parse(raw)),
+    localStorage: {
+      getItem: (k) => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => store.set(k, String(v)),
+      removeItem: (k) => store.delete(k)
+    }
+  };
+}
+
+test('mergeConfig deep merges nested objects while replacing arrays cleanly', () => {
+  const merged = mergeConfig(DEFAULT_CONFIG, {
+    dimming: 40,
+    pet: { mode: 'roam', size: 100 },
+    stickers: { items: [{ id: 'den-long', slot: 'input-top-left', size: 48 }] }
+  });
+  assert.equal(merged.dimming, 40);
+  assert.equal(merged.pet.mode, 'roam');
+  assert.equal(merged.pet.id, DEFAULT_CONFIG.pet.id);
+  assert.equal(merged.stickers.items.length, 1);
+  assert.equal(merged.stickers.items[0].id, 'den-long');
+});
+
+test('loadConfig prioritizes authoritative __AGY_THEME_BOOT__.config across ephemeral port restarts', () => {
+  const emptyOriginWin = createMockWindow({
+    boot: {
+      config: { wallpaperId: 'kanagawa-wave', dimming: 33, __savedAt: 500 },
+      media: {}
+    }
+  });
+  const loadedFromEmpty = loadConfig(emptyOriginWin);
+  assert.equal(loadedFromEmpty.wallpaperId, 'kanagawa-wave');
+  assert.equal(loadedFromEmpty.dimming, 33);
+  assert.ok(emptyOriginWin.localStorage.getItem('agy_custom_theme_v1'));
+
+  const staleLocalWin = createMockWindow({
+    local: {
+      agy_custom_theme_v1: JSON.stringify({ wallpaperId: 'obsidian-nebula', __savedAt: 100 })
+    },
+    boot: {
+      config: { wallpaperId: 'kanagawa-wave', __savedAt: 200 },
+      media: {}
+    }
+  });
+  assert.equal(loadConfig(staleLocalWin).wallpaperId, 'kanagawa-wave');
+
+  const fresherLocalWin = createMockWindow({
+    local: {
+      agy_custom_theme_v1: JSON.stringify({ wallpaperId: 'sakura-shrine-night', __savedAt: 900 })
+    },
+    boot: {
+      config: { wallpaperId: 'kanagawa-wave', __savedAt: 200 },
+      media: {}
+    }
+  });
+  assert.equal(loadConfig(fresherLocalWin).wallpaperId, 'sakura-shrine-night');
+});
+
+test('sanitizeImportedConfig clamps bounds, strips local OS paths, and neutralizes </style in customCss', () => {
+  assert.equal(
+    sanitizeCssText('body { color: red; }</sTyLe><script>alert(1)</script>\0'),
+    'body { color: red; }><script>alert(1)</script>'
+  );
+
+  const sanitized = sanitizeImportedConfig({
+    dimming: 500,
+    glassBlur: -9,
+    wpBlur: 99,
+    wallpaperId: 'C:\\Users\\VinhDat\\secret.png',
+    wallpaperPos: '/Users/dev/bg.jpg',
+    avatars: { size: 999, radius: -10, rotate: 180, agentMode: 'invalid' },
+    pet: { mode: 'teleport', size: 10, opacity: 200 },
+    customCss: '.a { color: #fff; }</style><img src=x>',
+    unknownDangerousProp: 'drop'
+  });
+
+  assert.equal(sanitized.dimming, 92);
+  assert.equal(sanitized.glassBlur, 0);
+  assert.equal(sanitized.wpBlur, 20);
+  assert.equal(sanitized.wallpaperId, '');
+  assert.equal(sanitized.wallpaperPos, DEFAULT_CONFIG.wallpaperPos);
+  assert.equal(sanitized.avatars.size, 64);
+  assert.equal(sanitized.avatars.radius, 0);
+  assert.equal(sanitized.avatars.rotate, 45);
+  assert.equal(sanitized.avatars.agentMode, 'star');
+  assert.equal(sanitized.pet.mode, 'float');
+  assert.equal(sanitized.pet.size, 44);
+  assert.equal(sanitized.pet.opacity, 100);
+  assert.ok(!/<\/style/i.test(sanitized.customCss));
+  assert.equal(sanitized.unknownDangerousProp, undefined);
+
+  const exported = exportPortableConfig({ ...DEFAULT_CONFIG, customSelectors: { appShell: '.agy-shell' } });
+  const reparsed = JSON.parse(exported);
+  assert.equal(reparsed.__savedAt, undefined);
+  assert.ok(!/[A-Za-z]:\\/.test(exported));
+});
+
+test('saveConfig, resetConfig, and custom media methods emit __agyThemeBridge payloads', async () => {
+  assert.deepEqual(MEDIA_SLOTS, ['wallpaper', 'wallpaperLight', 'userAvatar', 'agentAvatar', 'pet', 'sticker']);
+  const win = createMockWindow({
+    boot: {
+      config: { ...DEFAULT_CONFIG, hiddenWallpapers: ['obsidian-nebula'], customBundles: [{ id: 'mine', name: 'Mine', patch: {} }] },
+      media: { userAvatar: 'data:image/webp;base64,USER' }
+    }
+  });
+
+  const saved = saveConfig({ ...DEFAULT_CONFIG, dimming: 55 }, win);
+  assert.ok(saved.__savedAt > 0);
+  assert.equal(win.emitted.at(-1).type, 'config');
+  assert.equal(win.emitted.at(-1).data.dimming, 55);
+
+  await saveCustomMedia('wallpaper', 'data:image/webp;base64,WP1', win);
+  assert.equal(win.emitted.at(-1).type, 'media');
+  assert.equal(win.emitted.at(-1).key, 'wallpaper');
+  assert.equal(win.emitted.at(-1).dataUrl, 'data:image/webp;base64,WP1');
+
+  await deleteCustomMedia('wallpaper', win);
+  assert.equal(win.emitted.at(-1).dataUrl, null);
+
+  const mediaMap = await loadCustomMediaMap(win);
+  assert.equal(mediaMap.userAvatar, 'data:image/webp;base64,USER');
+
+  const afterReset = resetConfig(
+    {
+      ...DEFAULT_CONFIG,
+      dimming: 80,
+      hiddenWallpapers: ['thunder-samurai'],
+      customBundles: [{ id: 'custom-1', name: 'C1', patch: {} }],
+      customSelectors: { chatBubble: '.my-bubble' }
+    },
+    win
+  );
+  assert.equal(afterReset.dimming, DEFAULT_CONFIG.dimming);
+  assert.deepEqual(afterReset.hiddenWallpapers, ['thunder-samurai']);
+  assert.equal(afterReset.customBundles.length, 1);
+  assert.equal(afterReset.customSelectors.chatBubble, '.my-bubble');
+  assert.equal(afterReset.wallpaperId, 'none');
+});
