@@ -42,6 +42,21 @@ const WALLPAPER_MIME_MAP = {
   '.svg': 'image/svg+xml'
 };
 
+export function compactModuleCode(code) {
+  return String(code || '')
+    .replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/g, (svg) =>
+      svg
+        .replace(/>\s+</g, '><')
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+    )
+    .replace(/^[ \t]*\/\*\*[\s\S]*?\*\/[ \t]*$/gm, '')
+    .replace(/^[ \t]*\/\/.*$/gm, '')
+    .replace(/^[ \t]+/gm, '')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+}
+
 export function stripModuleSyntax(code) {
   return String(code || '')
     .replace(/^\s*import\s+[\s\S]*?\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
@@ -110,8 +125,8 @@ export function buildBundle({ rootDir = DEFAULT_ROOT, outFile, moduleFiles = MOD
       }
     }
 
-    parts.push(`\n  // ===== ${rel} =====`);
-    parts.push(stripModuleSyntax(code));
+    parts.push(`\n// ===== ${rel} =====`);
+    parts.push(compactModuleCode(stripModuleSyntax(code)));
   }
 
   parts.push('\n})();\n');

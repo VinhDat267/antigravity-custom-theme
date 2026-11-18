@@ -8,10 +8,12 @@ import vm from 'node:vm';
 import {
   ackDaemonCommand,
   buildNewDocumentWrapper,
+  computeNextPollDelay,
   resolvePortFile,
   parsePortFileContent,
   filterAntigravityTargets,
   persistBridgeMessage,
+  prepareBundleSource,
   readDaemonCommandAck,
   teardownTarget,
   writeDaemonCommand,
@@ -262,6 +264,41 @@ test('ackDaemonCommand and readDaemonCommandAck coordinate reset before stop, an
     assert.equal(evals.length, 1);
     assert.ok(evals[0].includes('agy_custom_theme_v1'));
     assert.ok(evals[0].includes('agy_custom_theme_media_v1'));
+    assert.ok(evals[0].includes('agy_ct_glass_cache_v1'));
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('prepareBundleSource memoizes payload by file mtimes and computeNextPollDelay backs off when sessions are active', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-ct-bundle-cache-'));
+  try {
+    const distDir = path.join(tmpDir, 'dist');
+    const userDir = path.join(tmpDir, 'user-data');
+    fs.mkdirSync(distDir, { recursive: true });
+    fs.mkdirSync(userDir, { recursive: true });
+
+    const bundleFile = path.join(distDir, 'antigravity-theme.js');
+    const cfgFile = path.join(userDir, 'config.json');
+    fs.writeFileSync(bundleFile, 'console.log("bundle");', 'utf8');
+    fs.writeFileSync(cfgFile, JSON.stringify({ enabled: true, accentColor: '#f5c451' }), 'utf8');
+
+    const first = prepareBundleSource({ rootDir: tmpDir, userDataDir: userDir });
+    const second = prepareBundleSource({ rootDir: tmpDir, userDataDir: userDir });
+    assert.equal(first.fromCache, false);
+    assert.equal(second.fromCache, true);
+    assert.equal(first.payload, second.payload);
+
+    fs.writeFileSync(cfgFile, JSON.stringify({ enabled: true, accentColor: '#22d3ee' }), 'utf8');
+    const future = new Date(Date.now() + 2000);
+    fs.utimesSync(cfgFile, future, future);
+
+    const third = prepareBundleSource({ rootDir: tmpDir, userDataDir: userDir });
+    assert.equal(third.fromCache, false);
+    assert.ok(third.payload.includes('#22d3ee'));
+
+    assert.equal(computeNextPollDelay({ hasActiveSessions: false, fastPollMs: 1500, idlePollMs: 8000 }), 1500);
+    assert.equal(computeNextPollDelay({ hasActiveSessions: true, fastPollMs: 1500, idlePollMs: 8000 }), 8000);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }

@@ -17,6 +17,8 @@ export class AmbientCanvasEngine {
     this.rafId = null;
     this.lastTs = 0;
     this.lastDrawTs = 0;
+    this.frameIntervalMs = 14;
+    this.unfocused = false;
     this.dpr = 1;
     this.spriteCache = new Map();
     this.width = 0;
@@ -24,6 +26,14 @@ export class AmbientCanvasEngine {
     this.destroyed = false;
 
     this.onResize = this.resize.bind(this);
+    this.onBlur = () => {
+      this.unfocused = true;
+      this.frameIntervalMs = 48;
+    };
+    this.onFocus = () => {
+      this.unfocused = false;
+      this.frameIntervalMs = 14;
+    };
     this.onVisibility = () => {
       if (this.doc?.hidden) {
         this.stopLoop();
@@ -33,6 +43,8 @@ export class AmbientCanvasEngine {
     };
 
     this.win?.addEventListener?.('resize', this.onResize, { passive: true });
+    this.win?.addEventListener?.('blur', this.onBlur);
+    this.win?.addEventListener?.('focus', this.onFocus);
     this.doc?.addEventListener?.('visibilitychange', this.onVisibility);
     this.resize();
   }
@@ -220,7 +232,7 @@ export class AmbientCanvasEngine {
     if (!rafFn) return;
     const tick = (ts) => {
       if (this.destroyed || this.mode === 'none') return;
-      if (ts - this.lastTs >= 14) {
+      if (ts - this.lastTs >= this.frameIntervalMs) {
         this.lastTs = ts;
         this.drawFrame(ts);
       }
@@ -404,6 +416,8 @@ export class AmbientCanvasEngine {
     this.stopLoop();
     this.spriteCache.clear();
     this.win?.removeEventListener?.('resize', this.onResize);
+    this.win?.removeEventListener?.('blur', this.onBlur);
+    this.win?.removeEventListener?.('focus', this.onFocus);
     this.doc?.removeEventListener?.('visibilitychange', this.onVisibility);
   }
 }

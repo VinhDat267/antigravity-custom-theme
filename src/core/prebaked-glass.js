@@ -7,6 +7,39 @@
 import { resolveWallpaperUrl } from '../assets/wallpapers-manifest.js';
 
 const PB_GLASS_CACHE = new Map();
+const PB_STORAGE_KEY = 'agy_ct_glass_cache_v1';
+
+export function clearPrebakedGlassMemoryCache() {
+  PB_GLASS_CACHE.clear();
+}
+
+function pbReadStoredGlass(expectedKey) {
+  try {
+    const raw = globalThis.localStorage?.getItem?.(PB_STORAGE_KEY);
+    if (!raw) return '';
+    const parsed = JSON.parse(raw);
+    if (
+      parsed &&
+      parsed.key === expectedKey &&
+      typeof parsed.dataUrl === 'string' &&
+      /^data:image\/(webp|png);base64,/i.test(parsed.dataUrl)
+    ) {
+      return parsed.dataUrl;
+    }
+  } catch {
+    // Ignore storage read errors
+  }
+  return '';
+}
+
+function pbWriteStoredGlass(key, dataUrl) {
+  if (typeof dataUrl !== 'string' || dataUrl.length >= 380_000) return;
+  try {
+    globalThis.localStorage?.setItem?.(PB_STORAGE_KEY, JSON.stringify({ key, dataUrl }));
+  } catch {
+    // Ignore storage quota or private mode errors
+  }
+}
 
 export function syncPrebakedGlass(shellEl, config, customMedia = {}) {
   const wpUrl = resolveWallpaperUrl(config, customMedia);
@@ -25,6 +58,14 @@ export function syncPrebakedGlass(shellEl, config, customMedia = {}) {
     const baked = PB_GLASS_CACHE.get(key);
     shellEl?.style?.setProperty('--agy-l-glass-bg', `url("${baked}")`);
     return Promise.resolve(baked);
+  }
+
+  const stored = pbReadStoredGlass(key);
+  if (stored) {
+    if (PB_GLASS_CACHE.size > 16) PB_GLASS_CACHE.clear();
+    PB_GLASS_CACHE.set(key, stored);
+    shellEl?.style?.setProperty('--agy-l-glass-bg', `url("${stored}")`);
+    return Promise.resolve(stored);
   }
 
   if (typeof Image === 'undefined' || typeof document === 'undefined') {
@@ -62,6 +103,7 @@ export function syncPrebakedGlass(shellEl, config, customMedia = {}) {
         }
         if (PB_GLASS_CACHE.size > 16) PB_GLASS_CACHE.clear();
         PB_GLASS_CACHE.set(key, baked);
+        pbWriteStoredGlass(key, baked);
         const target = shellEl || document.querySelector('.agy-shell, [data-agy-mock-shell]');
         target?.style?.setProperty('--agy-l-glass-bg', `url("${baked}")`);
         resolve(baked);

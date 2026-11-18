@@ -224,3 +224,33 @@ test('AmbientCanvasEngine draws fireflies and stardust without ctx.shadowBlur an
   assert.ok(drawnImages.length > 0, 'Expected cached glow sprite drawImage calls');
   engine.destroy();
 });
+
+test('AmbientCanvasEngine throttles frame interval when window blurs and restores 60fps on focus', () => {
+  const winListeners = new Map();
+  const mockDoc = {
+    hidden: false,
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+  const mockWin = {
+    innerWidth: 1200,
+    innerHeight: 800,
+    devicePixelRatio: 1,
+    addEventListener: (ev, fn) => winListeners.set(ev, fn),
+    removeEventListener: (ev) => winListeners.delete(ev),
+    requestAnimationFrame: () => 1,
+    cancelAnimationFrame: () => {}
+  };
+
+  const canvas = createMockCanvas();
+  const engine = new AmbientCanvasEngine(canvas, { envWindow: mockWin, envDocument: mockDoc });
+  engine.configure('snow', 50);
+  assert.equal(engine.frameIntervalMs, 14);
+
+  winListeners.get('blur')?.();
+  assert.ok(engine.frameIntervalMs >= 45, `Expected blurred interval >= 45ms, got ${engine.frameIntervalMs}`);
+
+  winListeners.get('focus')?.();
+  assert.equal(engine.frameIntervalMs, 14);
+  engine.destroy();
+});

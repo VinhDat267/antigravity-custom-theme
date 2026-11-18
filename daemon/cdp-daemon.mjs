@@ -419,21 +419,53 @@ export async function ensureHostBridge(session, userDataDir, boundState = null) 
   if (boundState) boundState.attached = true;
 }
 
+const BUNDLE_PAYLOAD_CACHE = new Map();
+
+function statSig(filePath) {
+  try {
+    const st = fs.statSync(filePath);
+    return `${st.mtimeMs}:${st.size}`;
+  } catch {
+    return 'missing';
+  }
+}
+
+export function computeNextPollDelay({ hasActiveSessions, fastPollMs = 1500, idlePollMs = 8000 } = {}) {
+  return hasActiveSessions ? Math.max(fastPollMs, idlePollMs) : fastPollMs;
+}
+
 export function prepareBundleSource({ rootDir = DEFAULT_ROOT_DIR, userDataDir } = {}) {
   const resolvedRoot = path.resolve(rootDir);
+  const resolvedUserDir = path.resolve(userDataDir || path.join(resolvedRoot, 'user-data'));
   const bundlePath = path.join(resolvedRoot, 'dist', 'antigravity-theme.js');
   if (!fs.existsSync(bundlePath)) {
     buildBundle({ rootDir: resolvedRoot, outFile: bundlePath });
   }
+
+  const cacheKey = `${bundlePath}|${resolvedUserDir}`;
+  const sigParts = [statSig(bundlePath), statSig(path.join(resolvedUserDir, 'config.json'))];
+  for (const slot of VALID_MEDIA_SLOTS) {
+    sigParts.push(statSig(path.join(resolvedUserDir, 'media', `${slot}.dat`)));
+  }
+  const sig = sigParts.join('|');
+
+  const cached = BUNDLE_PAYLOAD_CACHE.get(cacheKey);
+  if (cached && cached.sig === sig) {
+    return { ...cached.value, fromCache: true };
+  }
+
   const rawBundle = fs.readFileSync(bundlePath, 'utf8');
-  const boot = loadBootPayload(userDataDir || path.join(resolvedRoot, 'user-data'));
+  const boot = loadBootPayload(resolvedUserDir);
   const strippedBundle = stripDeletedWallpapers(rawBundle, boot.config);
   const bootPrefix = `window.__AGY_THEME_BOOT__ = ${JSON.stringify(boot)};\n`;
-  return {
+  const value = {
     bundlePath,
     boot,
     payload: `${bootPrefix}${strippedBundle}`
   };
+  if (BUNDLE_PAYLOAD_CACHE.size >= 8) BUNDLE_PAYLOAD_CACHE.clear();
+  BUNDLE_PAYLOAD_CACHE.set(cacheKey, { sig, value });
+  return { ...value, fromCache: false };
 }
 
 export function buildNewDocumentWrapper(payload) {
@@ -534,6 +566,7 @@ export async function teardownTarget(session, state = null, { wipeData = false }
   const wipeExpr = wipeData
     ? `
       try { localStorage.removeItem('agy_custom_theme_v1'); } catch {}
+      try { localStorage.removeItem('agy_ct_glass_cache_v1'); } catch {}
       try { indexedDB.deleteDatabase('agy_custom_theme_media_v1'); } catch {}
     `
     : '';
@@ -888,9 +921,38 @@ export async function runDaemon({
     // Polling fallback handles commands if fs.watch fails
   }
 
-  const pollTimer = setInterval(() => {
-    void handleCommands().then(() => syncTargets(false));
-  }, pollMs);
+  let portTimer = null;
+  try {
+    const portFilePath = resolvePortFile(portFileOpts);
+    const portFileDir = path.dirname(portFilePath);
+    const portFileName = path.basename(portFilePath);
+    if (fs.existsSync(portFileDir)) {
+      const portWatcher = fs.watch(portFileDir, (_evt, fname) => {
+        if (fname && fname !== portFileName) return;
+        clearTimeout(portTimer);
+        portTimer = setTimeout(() => void syncTargets(false), 120);
+      });
+      watchers.push(portWatcher);
+    }
+  } catch {
+    // Polling fallback handles DevToolsActivePort updates if fs.watch fails
+  }
+
+  let pollTimer = null;
+  const scheduleNextPoll = () => {
+    if (stopping) return;
+    const delay = computeNextPollDelay({
+      hasActiveSessions: sessions.size > 0,
+      fastPollMs: pollMs,
+      idlePollMs: Math.max(pollMs, 8000)
+    });
+    pollTimer = setTimeout(() => {
+      if (stopping) return;
+      void handleCommands()
+        .then(() => syncTargets(false))
+        .finally(scheduleNextPoll);
+    }, delay);
+  };
 
   let resolveExit;
   const exitPromise = new Promise((resolve) => {
@@ -900,7 +962,8 @@ export async function runDaemon({
   const shutdown = () => {
     if (stopping) return;
     stopping = true;
-    clearInterval(pollTimer);
+    clearTimeout(pollTimer);
+    clearTimeout(portTimer);
     clearTimeout(bundleTimer);
     for (const w of watchers) {
       try {
@@ -926,6 +989,7 @@ export async function runDaemon({
   process.once('SIGTERM', shutdown);
 
   await syncTargets(false);
+  scheduleNextPoll();
   return exitPromise;
 }
 

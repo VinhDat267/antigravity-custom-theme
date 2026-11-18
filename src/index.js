@@ -35,8 +35,8 @@ class CustomThemeController {
     this.launcherBtn = null;
     this.sidebarBtn = null;
     this.settingsBtn = null;
-    this.domObserver = null;
-    this.domRafId = 0;
+    this.checkedSidebarEl = null;
+    this.checkedSidebarCount = -1;
     this.liveRafId = 0;
     this.pendingLivePatch = null;
     this.initialized = false;
@@ -129,6 +129,7 @@ class CustomThemeController {
         this.petStage?.update();
         this.stickerLayer?.repositionAll();
       },
+      onDomMutate: () => this.ensureLauncherAndSidebarHooks(),
       studioElement: this.studio.getElement()
     });
 
@@ -158,18 +159,6 @@ class CustomThemeController {
     });
 
     this.ensureLauncherAndSidebarHooks();
-    this.domObserver = new MutationObserver((records) => {
-      if (Array.isArray(records) && records.length > 0 && records.every((r) => r.target?.closest?.('[data-agy-ct-injected="true"]'))) {
-        return;
-      }
-      if (this.domRafId) return;
-      const rafFn = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (fn) => setTimeout(fn, 0);
-      this.domRafId = rafFn(() => {
-        this.domRafId = 0;
-        this.ensureLauncherAndSidebarHooks();
-      });
-    });
-    this.domObserver.observe(document.body, { childList: true, subtree: true });
     document.addEventListener('keydown', this.onKeyDown);
 
     syncConfigToHost(this.config);
@@ -187,11 +176,15 @@ class CustomThemeController {
   }
 
   ensureLauncherAndSidebarHooks() {
+    const sidebar = document.querySelector('.agy-shell .bg-sidebar, [data-agy-mock-shell] .bg-sidebar');
+    const sidebarChildCount = sidebar ? sidebar.childElementCount || 0 : -1;
+    const sidebarHasBtn = Boolean(this.sidebarBtn && document.body.contains(this.sidebarBtn));
+    const sidebarCachedMiss = !sidebarHasBtn && sidebar === this.checkedSidebarEl && sidebarChildCount === this.checkedSidebarCount;
+
     if (
       this.launcherBtn &&
       document.body.contains(this.launcherBtn) &&
-      this.sidebarBtn &&
-      document.body.contains(this.sidebarBtn) &&
+      (sidebarHasBtn || sidebarCachedMiss) &&
       !document.querySelector('.settings-modal-container')
     ) {
       return;
@@ -215,8 +208,9 @@ class CustomThemeController {
     }
 
     // Sidebar button below Customizations
-    const sidebar = document.querySelector('.agy-shell .bg-sidebar, [data-agy-mock-shell] .bg-sidebar');
-    if (sidebar && !document.getElementById('agy-ct-sidebar-btn')) {
+    if (sidebar && !document.getElementById('agy-ct-sidebar-btn') && !sidebarCachedMiss) {
+      this.checkedSidebarEl = sidebar;
+      this.checkedSidebarCount = sidebarChildCount;
       const spans = Array.from(sidebar.querySelectorAll('span, button, a'));
       const anchor = spans.find((el) => (el.textContent || '').trim() === 'Customizations');
       const row = anchor?.closest('a, button, div[role="button"]') || anchor?.parentElement;
@@ -384,13 +378,11 @@ class CustomThemeController {
 
   destroy() {
     document.removeEventListener('keydown', this.onKeyDown);
-    if (this.domRafId && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(this.domRafId);
     if (this.liveRafId && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(this.liveRafId);
-    this.domRafId = 0;
     this.liveRafId = 0;
     this.pendingLivePatch = null;
-    this.domObserver?.disconnect();
-    this.domObserver = null;
+    this.checkedSidebarEl = null;
+    this.checkedSidebarCount = -1;
     this.ambient?.destroy();
     this.petStage?.destroy();
     this.stickerLayer?.destroy();

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { DEFAULT_CONFIG } from '../src/core/config-store.js';
-import { syncPrebakedGlass } from '../src/core/prebaked-glass.js';
+import { clearPrebakedGlassMemoryCache, syncPrebakedGlass } from '../src/core/prebaked-glass.js';
 import { computeBrowserHoleClip } from '../src/core/dom-targets.js';
 import { buildStylesheet, SurfaceEngine } from '../src/core/surface-engine.js';
 
@@ -310,6 +310,186 @@ test('buildStylesheet themes Overview Panel card hosts, section headers, count b
 
     assert.ok(!css.includes('[data-testid="overview-panel-host"]'));
     assert.ok(!css.includes('[data-testid^="overview-panel-host-"]'));
+  }
+});
+
+test('SurfaceEngine skips rAF on agent-response streaming mutations, eliminates CSS drop-shadow, pauses animations when idle, compacts CSS, and caches L-glass in localStorage', async () => {
+  const css = buildStylesheet({ ...DEFAULT_CONFIG, enabled: true }, {});
+  assertBalancedCssBraces(css);
+  assert.ok(!/drop-shadow\(/i.test(css), 'Zero CSS filter: drop-shadow allowed anywhere in stylesheet');
+  assert.ok(css.includes('.agy-ct-sticker-node.has-glow::before'));
+  assert.ok(css.includes('html.agy-ct-idle-paused'));
+  assert.ok(!css.includes('/* Zero Live Blur Architecture'), 'CSS block comments must be stripped');
+
+  const origDoc = globalThis.document;
+  const origWin = globalThis.window;
+  const origMutationObserver = globalThis.MutationObserver;
+  const origResizeObserver = globalThis.ResizeObserver;
+  const origRaf = globalThis.requestAnimationFrame;
+  const origCancelRaf = globalThis.cancelAnimationFrame;
+  const origImage = globalThis.Image;
+  const origStorage = globalThis.localStorage;
+
+  try {
+    let observerCb = null;
+    const rafQueue = [];
+    let domMutateCount = 0;
+
+    const makeStyle = () => ({ setProperty() {}, removeProperty() {}, toggle() {} });
+    const shellEl = {
+      style: makeStyle(),
+      setAttribute() {},
+      removeAttribute() {},
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 1200, height: 800, right: 1200, bottom: 800 }),
+      querySelector: () => null
+    };
+    const rootClassList = new Set();
+    const docRoot = {
+      classList: {
+        add: (c) => rootClassList.add(c),
+        remove: (c) => rootClassList.delete(c),
+        toggle: (c, force) => (force ? rootClassList.add(c) : rootClassList.delete(c)),
+        contains: (c) => rootClassList.has(c)
+      },
+      style: makeStyle()
+    };
+
+    const storageMap = new Map();
+    globalThis.localStorage = {
+      getItem: (k) => (storageMap.has(k) ? storageMap.get(k) : null),
+      setItem: (k, v) => storageMap.set(k, String(v)),
+      removeItem: (k) => storageMap.delete(k)
+    };
+    globalThis.ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+    globalThis.MutationObserver = class {
+      constructor(cb) {
+        observerCb = cb;
+      }
+      observe() {}
+      disconnect() {}
+    };
+    globalThis.requestAnimationFrame = (fn) => {
+      rafQueue.push(fn);
+      return rafQueue.length;
+    };
+    globalThis.cancelAnimationFrame = () => {};
+    globalThis.window = {
+      addEventListener() {},
+      removeEventListener() {}
+    };
+    const fakeCanvasCtx = { filter: 'none', drawImage() {}, fillStyle: '', fillRect() {} };
+    globalThis.document = {
+      hidden: false,
+      documentElement: docRoot,
+      body: {
+        classList: { add() {}, remove() {} },
+        getAttribute: () => null,
+        prepend() {},
+        appendChild() {}
+      },
+      head: { appendChild() {} },
+      createElement: (tag) => {
+        if (tag === 'canvas') {
+          return {
+            width: 0,
+            height: 0,
+            getContext: () => fakeCanvasCtx,
+            toDataURL: (mime) => (mime === 'image/webp' ? 'data:image/webp;base64,MOCKBAKEDGLASS' : 'data:image/png;base64,MOCKBAKEDGLASS')
+          };
+        }
+        return { style: makeStyle(), setAttribute() {}, appendChild() {} };
+      },
+      getElementById: () => ({ style: makeStyle(), setAttribute() {}, remove() {} }),
+      querySelector: (sel) => (sel.includes('.agy-shell') ? shellEl : null),
+      querySelectorAll: () => [],
+      addEventListener() {},
+      removeEventListener() {}
+    };
+
+    const engine = new SurfaceEngine({
+      getConfig: () => DEFAULT_CONFIG,
+      getCustomMedia: () => ({}),
+      onDomMutate: () => {
+        domMutateCount += 1;
+      }
+    });
+    engine.mount();
+
+    observerCb([
+      {
+        type: 'childList',
+        target: { closest: (sel) => (sel === '[data-testid="agent-response"]' ? {} : null) },
+        addedNodes: [],
+        removedNodes: []
+      }
+    ]);
+    assert.equal(rafQueue.length, 0, 'Streaming mutations inside agent-response must not schedule rAF');
+
+    observerCb([
+      {
+        type: 'childList',
+        target: { closest: () => null },
+        addedNodes: [],
+        removedNodes: []
+      }
+    ]);
+    assert.equal(rafQueue.length, 1);
+    rafQueue.shift()();
+    assert.equal(domMutateCount, 1);
+    engine.destroy();
+
+    // Test localStorage cache hit for syncPrebakedGlass
+    clearPrebakedGlassMemoryCache();
+    globalThis.Image = class {
+      constructor() {
+        this.naturalWidth = 1600;
+        this.naturalHeight = 900;
+      }
+      set src(_val) {
+        this.onload?.();
+      }
+    };
+
+    const glassProps = {};
+    const glassShell = {
+      style: {
+        setProperty: (k, v) => {
+          glassProps[k] = v;
+        },
+        removeProperty() {}
+      }
+    };
+    const glassCfg = { ...DEFAULT_CONFIG, enabled: true, wallpaperId: 'custom', dimming: 25, glassBlur: 6 };
+    const glassMedia = { wallpaper: 'data:image/webp;base64,MOCKSOURCEWP' };
+
+    const firstBaked = await syncPrebakedGlass(glassShell, glassCfg, glassMedia);
+    assert.equal(firstBaked, 'data:image/webp;base64,MOCKBAKEDGLASS');
+    assert.ok(storageMap.has('agy_ct_glass_cache_v1'), 'syncPrebakedGlass must persist baked URI to localStorage');
+
+    clearPrebakedGlassMemoryCache();
+    delete glassProps['--agy-l-glass-bg'];
+    globalThis.Image = class {
+      constructor() {
+        throw new Error('Should not decode Image on localStorage hit');
+      }
+    };
+
+    const secondBaked = await syncPrebakedGlass(glassShell, glassCfg, glassMedia);
+    assert.equal(secondBaked, 'data:image/webp;base64,MOCKBAKEDGLASS');
+    assert.equal(glassProps['--agy-l-glass-bg'], 'url("data:image/webp;base64,MOCKBAKEDGLASS")');
+  } finally {
+    globalThis.document = origDoc;
+    globalThis.window = origWin;
+    globalThis.MutationObserver = origMutationObserver;
+    globalThis.ResizeObserver = origResizeObserver;
+    globalThis.requestAnimationFrame = origRaf;
+    globalThis.cancelAnimationFrame = origCancelRaf;
+    globalThis.Image = origImage;
+    globalThis.localStorage = origStorage;
   }
 });
 

@@ -124,9 +124,21 @@ export class PetStage {
         this.configureMotion(this.getConfig().pet?.mode, true);
       }
     };
+    this.onWindowBlur = () => {
+      if (this.getConfig().pet?.mode === 'roam') {
+        this.stopMotion();
+      }
+    };
+    this.onWindowFocus = () => {
+      if (!this.destroyed && this.stageEl && !(typeof document !== 'undefined' && document.hidden)) {
+        this.configureMotion(this.getConfig().pet?.mode, true);
+      }
+    };
 
     if (typeof window !== 'undefined') {
       window.addEventListener('mousemove', this.onMouseMove, { passive: true });
+      window.addEventListener('blur', this.onWindowBlur);
+      window.addEventListener('focus', this.onWindowFocus);
     }
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', this.onVisibilityChange);
@@ -399,6 +411,8 @@ export class PetStage {
     clearTimeout(this.speechTimer);
     if (typeof window !== 'undefined') {
       window.removeEventListener('mousemove', this.onMouseMove);
+      window.removeEventListener('blur', this.onWindowBlur);
+      window.removeEventListener('focus', this.onWindowFocus);
     }
     if (typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', this.onVisibilityChange);

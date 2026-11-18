@@ -23,6 +23,14 @@ import {
 
 const SE_STYLE_ID = 'agy-ct-styles';
 
+function minifyCssBlock(css) {
+  return String(css || '')
+    .replace(/\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\//g, '')
+    .replace(/^[ \t]+|[ \t]+$/gm, '')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+}
+
 function seSafeCssUrl(url) {
   return String(url || '')
     .replace(/\0/g, '')
@@ -208,7 +216,7 @@ export function buildStylesheet(config, customMedia = {}) {
 
   const customUserCss = sanitizeCssText(cfg.customCss || '');
 
-  return `
+  return minifyCssBlock(`
     :root {
       --agy-ct-accent: ${accent};
       --agy-ct-secondary: ${secondary};
@@ -814,7 +822,18 @@ export function buildStylesheet(config, customMedia = {}) {
       will-change: transform;
       contain: layout style;
     }
-    .agy-ct-sticker-node.has-glow { filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.22)); }
+    .agy-ct-sticker-node.has-glow::before {
+      content: "";
+      position: absolute;
+      inset: -20%;
+      border-radius: 9999px;
+      background: radial-gradient(circle, color-mix(in srgb, var(--agy-ct-accent) 24%, rgba(255, 255, 255, 0.22)) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: -1;
+    }
+    html.agy-ct-idle-paused [class*="agy-ct-anim-"] {
+      animation-play-state: paused !important;
+    }
 
     /* Studio Panel & Launcher (flat hairline design) */
     #agy-ct-launcher {
@@ -878,17 +897,18 @@ export function buildStylesheet(config, customMedia = {}) {
 
     /* Custom User CSS Override */
     ${customUserCss}
-  `;
+  `);
 }
 
 export class SurfaceEngine {
-  constructor({ getConfig, getCustomMedia, onCustomNavClick, onNativeNavClick, onConfigPatch, onHoleChange, studioElement }) {
+  constructor({ getConfig, getCustomMedia, onCustomNavClick, onNativeNavClick, onConfigPatch, onHoleChange, onDomMutate, studioElement }) {
     this.getConfig = getConfig;
     this.getCustomMedia = getCustomMedia;
     this.onCustomNavClick = onCustomNavClick;
     this.onNativeNavClick = onNativeNavClick;
     this.onConfigPatch = onConfigPatch;
     this.onHoleChange = onHoleChange;
+    this.onDomMutate = onDomMutate;
     this.studioElement = studioElement || null;
 
     this.observer = null;
@@ -924,6 +944,10 @@ export class SurfaceEngine {
       if (Array.isArray(records) && records.length > 0) {
         const allInjected = records.every((r) => r.target?.closest?.('[data-agy-ct-injected="true"]'));
         if (allInjected) return;
+        const allInsideAgentResponse = records.every(
+          (r) => r.type === 'childList' && Boolean(r.target?.closest?.('[data-testid="agent-response"]'))
+        );
+        if (allInsideAgentResponse) return;
         for (const r of records) {
           if (r.type === 'attributes') {
             this.pendingHoleSync = true;
@@ -954,11 +978,25 @@ export class SurfaceEngine {
         const syncHole = this.pendingHoleSync;
         this.pendingHoleSync = false;
         this.scanAndDecorate({ syncHole });
+        this.onDomMutate?.();
       });
     };
 
     this.onWindowResize = () => scheduleScan();
-    window.addEventListener('resize', this.onWindowResize, { passive: true });
+    this.onWindowBlur = () => document.documentElement?.classList?.add?.('agy-ct-idle-paused');
+    this.onWindowFocus = () => {
+      if (!document.hidden) {
+        document.documentElement?.classList?.remove?.('agy-ct-idle-paused');
+      }
+    };
+    this.onVisibilityChange = () => {
+      document.documentElement?.classList?.toggle?.('agy-ct-idle-paused', Boolean(document.hidden));
+    };
+
+    window.addEventListener?.('resize', this.onWindowResize, { passive: true });
+    window.addEventListener?.('blur', this.onWindowBlur);
+    window.addEventListener?.('focus', this.onWindowFocus);
+    document.addEventListener?.('visibilitychange', this.onVisibilityChange);
     this.observer = new MutationObserver(scheduleScan);
     this.observer.observe(document.body, {
       childList: true,
@@ -1314,7 +1352,11 @@ export class SurfaceEngine {
 
   destroy() {
     if (this.rafId) cancelAnimationFrame(this.rafId);
-    if (this.onWindowResize) window.removeEventListener('resize', this.onWindowResize);
+    if (this.onWindowResize) window.removeEventListener?.('resize', this.onWindowResize);
+    if (this.onWindowBlur) window.removeEventListener?.('blur', this.onWindowBlur);
+    if (this.onWindowFocus) window.removeEventListener?.('focus', this.onWindowFocus);
+    if (this.onVisibilityChange) document.removeEventListener?.('visibilitychange', this.onVisibilityChange);
+    document.documentElement?.classList?.remove?.('agy-ct-idle-paused');
     this.observer?.disconnect();
     this.resizeObserver?.disconnect();
     this.cancelPicker();

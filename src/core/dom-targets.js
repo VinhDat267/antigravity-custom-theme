@@ -75,45 +75,59 @@ export function dtFindShellElement(config) {
   return document.querySelector('.agy-shell, [data-agy-mock-shell]');
 }
 
+const DT_TIGHT_BUBBLE_SELECTOR =
+  '[data-testid="user-message-bubble"], .agy-user-bubble-frame, [data-agy-chat-bubble], .user-message-bubble';
+const DT_FALLBACK_BUBBLE_SELECTOR =
+  '[data-testid="user-message"], [data-message-author="user"], [data-message-role="user"]';
+
 export function dtFindChatBubbles(config) {
   const custom = config?.customSelectors?.chatBubble;
   if (custom) {
     return dtSafeQueryAll(custom).filter((el) => !dtIsInsideInjectorUi(el));
   }
   const found = new Set();
-  const tightSelectors = [
-    '[data-testid="user-message-bubble"]',
-    '.agy-user-bubble-frame',
-    '[data-agy-chat-bubble]',
-    '.user-message-bubble'
-  ];
-  for (const sel of tightSelectors) {
-    for (const el of dtSafeQueryAll(sel)) {
-      if (dtIsInsideInjectorUi(el)) continue;
-      const frame =
-        el.getAttribute('data-testid') === 'user-message-bubble'
-          ? el.closest('.agy-user-bubble-frame, [class*="bg-card-border"]') || el
-          : el;
-      found.add(frame);
-    }
+  for (const el of dtSafeQueryAll(DT_TIGHT_BUBBLE_SELECTOR)) {
+    if (dtIsInsideInjectorUi(el)) continue;
+    const frame =
+      el.getAttribute('data-testid') === 'user-message-bubble'
+        ? el.closest('.agy-user-bubble-frame, [class*="bg-card-border"]') || el
+        : el;
+    found.add(frame);
   }
 
   const tightMatches = Array.from(found);
-  const fallbackSelectors = [
-    '[data-testid="user-message"]',
-    '[data-message-author="user"]',
-    '[data-message-role="user"]'
-  ];
-  for (const sel of fallbackSelectors) {
-    for (const el of dtSafeQueryAll(sel)) {
-      if (dtIsInsideInjectorUi(el)) continue;
-      if (!tightMatches.some((inner) => el.contains(inner))) {
-        found.add(el);
-      }
+  const tightAncestors = new Set();
+  for (const inner of tightMatches) {
+    let p = inner.parentElement;
+    while (p) {
+      tightAncestors.add(p);
+      p = p.parentElement;
     }
   }
 
+  for (const el of dtSafeQueryAll(DT_FALLBACK_BUBBLE_SELECTOR)) {
+    if (dtIsInsideInjectorUi(el)) continue;
+    if (tightAncestors.size > 0) {
+      if (tightAncestors.has(el) || found.has(el)) continue;
+    } else if (tightMatches.some((inner) => el.contains(inner))) {
+      continue;
+    }
+    found.add(el);
+  }
+
   const raw = Array.from(found);
+  if (raw.length <= 1) return raw;
+  const allAncestors = new Set();
+  for (const el of raw) {
+    let p = el.parentElement;
+    while (p) {
+      allAncestors.add(p);
+      p = p.parentElement;
+    }
+  }
+  if (allAncestors.size > 0) {
+    return raw.filter((el) => !allAncestors.has(el));
+  }
   return raw.filter((el) => !raw.some((other) => other !== el && el.contains(other)));
 }
 
@@ -178,7 +192,9 @@ export function dtFindSettingsContext(config) {
     if (customNav) return { navList: customNav, contentPane: guessPane(customNav) };
   }
 
-  const modalRoot = document.querySelector('.settings-modal-container, [role="dialog"], [data-agy-settings-content]');
+  const modalRoot = document.querySelector(
+    '.settings-modal-container, [data-agy-settings-content], [role="dialog"]:not([data-testid^="overview-panel-"]):not(.agy-overlay):not([data-agy-ct-injected])'
+  );
   if (!modalRoot) return null;
 
   let containers = [];

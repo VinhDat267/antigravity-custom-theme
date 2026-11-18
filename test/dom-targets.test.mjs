@@ -44,13 +44,15 @@ test('dtFindChatBubbles selects tight .agy-user-bubble-frame over outer [data-te
 
     const legacyTurn = makeNode({ testId: 'user-message' });
 
-    const allNodes = [outerTurn, bubbleFrame, innerBubble, legacyTurn];
     globalThis.document = {
       querySelectorAll(sel) {
-        if (sel === '[data-testid="user-message-bubble"]') return [innerBubble];
-        if (sel === '.agy-user-bubble-frame') return [bubbleFrame];
-        if (sel === '[data-testid="user-message"]') return [outerTurn, legacyTurn];
-        return allNodes.filter(() => false);
+        const out = [];
+        if (sel.includes('[data-testid="user-message-bubble"]')) out.push(innerBubble);
+        if (sel.includes('.agy-user-bubble-frame')) out.push(bubbleFrame);
+        if (sel.includes('[data-testid="user-message"]') && !sel.includes('user-message-bubble')) {
+          out.push(outerTurn, legacyTurn);
+        }
+        return out;
       }
     };
 
@@ -109,6 +111,36 @@ test('dtFindSettingsContext fast-exits in O(1) when Settings modal is closed and
     assert.ok(ctx && ctx.navList === navList && ctx.contentPane === contentPane);
     assert.equal(broadQueries, 0);
     assert.equal(modalScopedQueries, 1);
+  } finally {
+    globalThis.document = origDoc;
+  }
+});
+
+test('dtFindChatBubbles batches DOM queries into <= 2 calls and dtFindSettingsContext ignores Overview/popup role="dialog" overlays', () => {
+  const origDoc = globalThis.document;
+  try {
+    let queryCount = 0;
+    const seenSelectors = [];
+    globalThis.document = {
+      querySelector(sel) {
+        seenSelectors.push(sel);
+        return null;
+      },
+      querySelectorAll(sel) {
+        queryCount += 1;
+        seenSelectors.push(sel);
+        return [];
+      }
+    };
+
+    dtFindChatBubbles({});
+    assert.ok(queryCount <= 2, `Expected <= 2 DOM queries in dtFindChatBubbles, got ${queryCount}`);
+
+    dtFindSettingsContext({});
+    const settingsSel = seenSelectors.find((s) => s.includes('.settings-modal-container'));
+    assert.ok(settingsSel, 'Expected dtFindSettingsContext selector check');
+    assert.ok(settingsSel.includes(':not([data-testid^="overview-panel-"])'));
+    assert.ok(settingsSel.includes(':not(.agy-overlay)'));
   } finally {
     globalThis.document = origDoc;
   }
