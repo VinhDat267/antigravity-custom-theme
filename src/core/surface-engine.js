@@ -399,13 +399,52 @@ export function buildStylesheet(config, customMedia = {}) {
         background: color-mix(in srgb, ${accent} 14%, rgba(${overlayRgb}, 0.82)) !important;
         box-shadow: none !important;
       }
-      .agy-shell [data-split-panes] .agy-sheet[data-sheet-inset] [data-tiling-pane]:not([data-has-browser-hole="true"]) {
+      html.agy-ct-active body.agy-ct-active .agy-inset-shell {
+        --sash-line: ${accent} !important;
+        --sash-glow: color-mix(in srgb, ${accent} 34%, transparent) !important;
+        --card-edge: color-mix(in srgb, ${accent} 22%, ${isLight ? 'rgba(15, 23, 42, 0.14)' : 'rgba(255, 255, 255, 0.12)'}) !important;
+      }
+      html.agy-ct-active body.agy-ct-active [data-split-panes] .agy-sheet[data-sheet-inset] :is([data-tiling-pane], [data-tiling-pane] > [data-pane-id]):not([data-has-browser-hole="true"]),
+      html.agy-ct-active body[data-has-browser-hole="true"].agy-ct-active [data-split-panes] .agy-sheet[data-sheet-inset] :is([data-tiling-pane], [data-tiling-pane] > [data-pane-id]):not([data-has-browser-hole="true"]),
+      html.agy-ct-active body[data-has-browser-hole="true"].agy-ct-active [data-split-panes] .agy-sheet[data-sheet-inset] [data-tiling-pane] > [data-pane-id] > :first-child {
         background: transparent !important;
+        background-color: transparent !important;
         background-image: none !important;
       }
-      .agy-shell [data-split-panes] .agy-sheet[data-sheet-inset] [data-tiling-pane]::after {
+      html.agy-ct-active body.agy-ct-active [data-split-panes] .agy-sheet[data-sheet-inset] [data-tiling-pane]::after {
         box-shadow: none !important;
         background: none !important;
+      }
+      html.agy-ct-active body.agy-ct-active [data-split-panes] .agy-sheet[data-sheet-inset] [data-testid="tiling-splitter"] > [data-splitter-band] {
+        background: transparent !important;
+        background-color: transparent !important;
+      }
+      html.agy-ct-active body.agy-ct-active [data-split-panes] .agy-sheet[data-sheet-inset] [data-testid="tiling-splitter"][data-axis="horizontal"]::before {
+        top: 0 !important;
+        bottom: 0 !important;
+        box-shadow: inset 1px 0 0 color-mix(in srgb, ${accent} 24%, ${isLight ? 'rgba(15, 23, 42, 0.14)' : 'rgba(255, 255, 255, 0.12)'}) !important;
+      }
+      html.agy-ct-active body.agy-ct-active [data-split-panes] .agy-sheet[data-sheet-inset] [data-testid="tiling-splitter"][data-axis="vertical"]::before {
+        left: 0 !important;
+        right: 0 !important;
+        top: 50% !important;
+        height: 1px !important;
+        box-shadow: inset 0 1px 0 color-mix(in srgb, ${accent} 24%, ${isLight ? 'rgba(15, 23, 42, 0.14)' : 'rgba(255, 255, 255, 0.12)'}) !important;
+      }
+      html.agy-ct-active body.agy-ct-active [data-split-panes] .agy-sheet[data-sheet-inset] [data-testid="tiling-splitter"]::after {
+        background-color: ${accent} !important;
+        box-shadow: 0 0 10px color-mix(in srgb, ${accent} 42%, transparent) !important;
+      }
+      html.agy-ct-active body.agy-ct-active [data-testid="pane-titlebar-toolbar"][data-reveal-on-hover] {
+        background: color-mix(in srgb, ${accent} 12%, rgba(${overlayRgb}, 0.88)) !important;
+        border-radius: 8px !important;
+      }
+      html.agy-ct-active body.agy-ct-active [data-testid="pane-titlebar-toolbar"] > [aria-hidden="true"][style*="linear-gradient"] {
+        background: none !important;
+        background-image: none !important;
+      }
+      html.agy-ct-active body.agy-ct-active [data-split-panes] .agy-sheet[data-sheet-inset] [data-main-content-body] > [data-testid="bottom-terminal-panel"] {
+        background-color: rgba(${overlayRgb}, ${codeAlpha.toFixed(3)}) !important;
       }
       .agy-shell [data-testid="worked-for-collapsible"] {
         background: transparent !important;
@@ -853,6 +892,15 @@ export function buildStylesheet(config, customMedia = {}) {
       cursor: pointer;
     }
     #agy-ct-launcher:hover { border-color: var(--agy-ct-accent); }
+    ${
+      launcherCorner !== 'top-right'
+        ? `
+      body:has([data-split-panes]) #agy-ct-launcher {
+        bottom: 112px;
+      }
+    `
+        : ''
+    }
 
     .agy-ct-hidden-native { display: none !important; }
     .agy-ct-nav-item.is-active { background: rgba(255, 255, 255, 0.1) !important; color: #ffffff !important; }

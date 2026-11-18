@@ -493,3 +493,16 @@ test('SurfaceEngine skips rAF on agent-response streaming mutations, eliminates 
   }
 });
 
+test('buildStylesheet styles ancestor [data-split-panes] tiling panes, splitters, narrow pane toolbars, and lifts bottom launcher above split composers', () => {
+  for (const isLight of [false, true]) {
+    const css = buildStylesheet({ ...DEFAULT_CONFIG, enabled: true, isLight }, {});
+    assertBalancedCssBraces(css);
+    assert.ok(!css.includes('.agy-shell [data-split-panes]'), 'Must not nest [data-split-panes] under .agy-shell because data-split-panes is an ancestor');
+    assert.ok(css.includes('body.agy-ct-active [data-split-panes] .agy-sheet[data-sheet-inset]'));
+    assert.ok(css.includes('[data-testid="tiling-splitter"]'));
+    assert.ok(css.includes('[data-splitter-band]'));
+    assert.ok(css.includes('[data-testid="pane-titlebar-toolbar"][data-reveal-on-hover]'));
+    assert.ok(css.includes('body:has([data-split-panes]) #agy-ct-launcher'));
+  }
+});
+

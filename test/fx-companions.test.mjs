@@ -254,3 +254,128 @@ test('AmbientCanvasEngine throttles frame interval when window blurs and restore
   assert.equal(engine.frameIntervalMs, 14);
   engine.destroy();
 });
+
+test('StickerLayer repositions on split composer ResizeObserver and follows focused [data-pane-id] session', () => {
+  const origDoc = globalThis.document;
+  const origWin = globalThis.window;
+  const origRO = globalThis.ResizeObserver;
+  const origRaf = globalThis.requestAnimationFrame;
+  const origCancelRaf = globalThis.cancelAnimationFrame;
+
+  try {
+    const docListeners = new Map();
+    const observed = new Set();
+    let roCallback = null;
+    const rafQueue = [];
+
+    const makeStickerNode = () => ({
+      className: '',
+      title: '',
+      innerHTML: '',
+      textContent: '',
+      dataset: {},
+      classList: { toggle() {} },
+      style: { width: '', height: '', opacity: '', transform: '' },
+      setAttribute() {},
+      addEventListener() {},
+      remove() {},
+      appendChild() {}
+    });
+
+    const rect1 = { left: 260, top: 820, right: 960, bottom: 910, width: 700, height: 90 };
+    const rect2 = { left: 980, top: 820, right: 1680, bottom: 910, width: 700, height: 90 };
+    const makeComposer = (paneId, rect) => ({
+      getBoundingClientRect: () => rect,
+      closest: (sel) => (sel === '[data-pane-id]' ? { getAttribute: (k) => (k === 'data-pane-id' ? paneId : null) } : null)
+    });
+    const comp1 = makeComposer('pane-1', rect1);
+    const comp2 = makeComposer('pane-2', rect2);
+
+    const nodes = [];
+    globalThis.document = {
+      body: {
+        appendChild: (el) => nodes.push(el)
+      },
+      createElement: () => makeStickerNode(),
+      querySelector: () => null,
+      addEventListener: (ev, fn) => docListeners.set(ev, fn),
+      removeEventListener: (ev) => docListeners.delete(ev)
+    };
+    globalThis.window = {
+      innerWidth: 1753,
+      innerHeight: 942,
+      addEventListener() {},
+      removeEventListener() {}
+    };
+    globalThis.ResizeObserver = class {
+      constructor(cb) {
+        roCallback = cb;
+      }
+      observe(el) {
+        observed.add(el);
+      }
+      unobserve(el) {
+        observed.delete(el);
+      }
+      disconnect() {
+        observed.clear();
+      }
+    };
+    globalThis.requestAnimationFrame = (fn) => {
+      rafQueue.push(fn);
+      return rafQueue.length;
+    };
+    globalThis.cancelAnimationFrame = () => {};
+
+    const flushRaf = () => {
+      while (rafQueue.length > 0) {
+        rafQueue.shift()();
+      }
+    };
+
+    const layer = new StickerLayer({
+      getConfig: () => ({
+        enabled: true,
+        stickers: {
+          enabled: true,
+          items: [
+            { id: 'hoa-anh-dao', slot: 'input-top-right', size: 50 },
+            { id: 'den-long', slot: 'input-top-left', size: 46 }
+          ]
+        }
+      }),
+      getCustomMedia: () => ({}),
+      findInputBoxes: () => [comp1, comp2],
+      getBrowserHoleRect: () => null,
+      onStickerMove: () => {}
+    });
+
+    layer.update();
+    assert.equal(observed.has(comp1), true);
+    assert.equal(observed.has(comp2), true);
+    assert.equal(nodes.length, 2);
+    assert.match(nodes[0].style.transform, /^translate3d\(924px,/);
+    assert.match(nodes[1].style.transform, /^translate3d\(247px,/);
+
+    docListeners.get('focusin')?.({
+      target: { closest: (sel) => (sel === '[data-pane-id]' ? { getAttribute: () => 'pane-2' } : null) }
+    });
+    flushRaf();
+    assert.match(nodes[0].style.transform, /^translate3d\(1644px,/);
+    assert.match(nodes[1].style.transform, /^translate3d\(967px,/);
+
+    rect2.right = 1500;
+    rect2.width = 520;
+    roCallback?.();
+    flushRaf();
+    assert.match(nodes[0].style.transform, /^translate3d\(1464px,/);
+
+    layer.destroy();
+  } finally {
+    globalThis.document = origDoc;
+    globalThis.window = origWin;
+    globalThis.ResizeObserver = origRO;
+    globalThis.requestAnimationFrame = origRaf;
+    globalThis.cancelAnimationFrame = origCancelRaf;
+  }
+});

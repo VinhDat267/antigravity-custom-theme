@@ -129,7 +129,10 @@ class CustomThemeController {
         this.petStage?.update();
         this.stickerLayer?.repositionAll();
       },
-      onDomMutate: () => this.ensureLauncherAndSidebarHooks(),
+      onDomMutate: () => {
+        this.ensureLauncherAndSidebarHooks();
+        this.stickerLayer?.scheduleReposition?.();
+      },
       studioElement: this.studio.getElement()
     });
 
@@ -147,7 +150,7 @@ class CustomThemeController {
     this.stickerLayer = new StickerLayer({
       getConfig: () => this.config,
       getCustomMedia: () => this.customMedia,
-      findInputBox: () => dtFindChatInputContainers(this.config)[0] || null,
+      findInputBoxes: () => dtFindChatInputContainers(this.config),
       getBrowserHoleRect: () => this.surface?.getHoleState()?.holeRect || null,
       onStickerMove: (idx, patch) => {
         const items = [...(this.config.stickers?.items || [])];

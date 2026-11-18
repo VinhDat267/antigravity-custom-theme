@@ -7,17 +7,68 @@ import { STICKER_TEMPLATES, renderStickerSvg } from '../assets/stickers.js';
 import { clampOutsideHole } from './pet-stage.js';
 
 export class StickerLayer {
-  constructor({ getConfig, getCustomMedia, findInputBox, getBrowserHoleRect, onStickerMove }) {
+  constructor({ getConfig, getCustomMedia, findInputBox, findInputBoxes, getBrowserHoleRect, onStickerMove }) {
     this.getConfig = getConfig;
     this.getCustomMedia = getCustomMedia;
     this.findInputBox = findInputBox;
+    this.findInputBoxes = findInputBoxes || null;
     this.getBrowserHoleRect = getBrowserHoleRect;
     this.onStickerMove = onStickerMove;
 
     this.nodes = new Map();
-    this.repositionHandler = () => this.repositionAll();
+    this.activePaneId = null;
+    this.rafId = 0;
+    this.resizeObserver = null;
+    this.observedTargets = new Set();
+
+    this.repositionHandler = () => this.scheduleReposition();
+    this.onPaneInteract = (e) => {
+      const pane = e?.target?.closest?.('[data-pane-id]');
+      const id = pane?.getAttribute?.('data-pane-id') || null;
+      if (id && id !== this.activePaneId) {
+        this.activePaneId = id;
+        this.scheduleReposition();
+      }
+    };
+
     if (typeof window !== 'undefined') {
-      window.addEventListener('resize', this.repositionHandler, { passive: true });
+      window.addEventListener?.('resize', this.repositionHandler, { passive: true });
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener?.('pointerdown', this.onPaneInteract, { passive: true });
+      document.addEventListener?.('focusin', this.onPaneInteract);
+    }
+  }
+
+  scheduleReposition() {
+    if (this.nodes.size === 0 || this.rafId) return;
+    if (typeof requestAnimationFrame === 'function') {
+      this.rafId = requestAnimationFrame(() => {
+        this.rafId = 0;
+        this.repositionAll();
+      });
+    } else {
+      this.repositionAll();
+    }
+  }
+
+  syncResizeTargets(targets) {
+    if (typeof ResizeObserver === 'undefined') return;
+    if (!this.resizeObserver) {
+      this.resizeObserver = new ResizeObserver(() => this.scheduleReposition());
+    }
+    const nextSet = new Set(targets.filter(Boolean));
+    for (const el of this.observedTargets) {
+      if (!nextSet.has(el)) {
+        this.resizeObserver.unobserve?.(el);
+        this.observedTargets.delete(el);
+      }
+    }
+    for (const el of nextSet) {
+      if (!this.observedTargets.has(el)) {
+        this.resizeObserver.observe(el);
+        this.observedTargets.add(el);
+      }
     }
   }
 
@@ -136,11 +187,25 @@ export class StickerLayer {
   }
 
   repositionAll() {
+    if (this.nodes.size === 0) return;
     const cfg = this.getConfig();
     const items = cfg.stickers?.items || [];
-    const inputEl = this.findInputBox?.();
+    const boxes = this.findInputBoxes
+      ? this.findInputBoxes()
+      : this.findInputBox
+        ? [this.findInputBox()].filter(Boolean)
+        : [];
+    const sidebarEl =
+      typeof document !== 'undefined'
+        ? document.querySelector?.('.agy-shell .bg-sidebar, [data-agy-mock-shell] .bg-sidebar')
+        : null;
+    this.syncResizeTargets([...boxes, ...(sidebarEl ? [sidebarEl] : [])]);
+    const inputEl =
+      (this.activePaneId &&
+        boxes.find((b) => b.closest?.('[data-pane-id]')?.getAttribute?.('data-pane-id') === this.activePaneId)) ||
+      boxes[0] ||
+      null;
     const inputRect = inputEl ? inputEl.getBoundingClientRect() : null;
-    const sidebarEl = document.querySelector('.agy-shell .bg-sidebar, [data-agy-mock-shell] .bg-sidebar');
     const sidebarRect = sidebarEl ? sidebarEl.getBoundingClientRect() : null;
     const holeRect = this.getBrowserHoleRect?.();
 
@@ -185,12 +250,27 @@ export class StickerLayer {
       node.remove();
     }
     this.nodes.clear();
+    for (const el of this.observedTargets) {
+      this.resizeObserver?.unobserve?.(el);
+    }
+    this.observedTargets.clear();
   }
 
   destroy() {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('resize', this.repositionHandler);
+    if (this.rafId && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(this.rafId);
     }
+    this.rafId = 0;
+    if (typeof window !== 'undefined') {
+      window.removeEventListener?.('resize', this.repositionHandler);
+    }
+    if (typeof document !== 'undefined') {
+      document.removeEventListener?.('pointerdown', this.onPaneInteract);
+      document.removeEventListener?.('focusin', this.onPaneInteract);
+    }
+    this.resizeObserver?.disconnect?.();
+    this.resizeObserver = null;
+    this.observedTargets.clear();
     this.clearAll();
   }
 }
