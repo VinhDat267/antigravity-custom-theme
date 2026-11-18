@@ -665,6 +665,14 @@ test('One Piece Dark & Light & Gear 5 Nika bundles emit balanced Zero-Live-Blur 
   // Light Mode host variable & surface contrast guards (overriding Antigravity Monokai/dark html[style] tokens)
   assert.ok(lightCss.includes('--foreground: #0f172a !important'), 'Light mode must override host --foreground token');
   assert.ok(lightCss.includes('--placeholder: #64748b !important'), 'Light mode must override host --placeholder token');
+  assert.ok(lightCss.includes('--card: rgba(255, 252, 240, 0.96) !important'), 'Light mode must override host --card token');
+  assert.ok(lightCss.includes('--color-card: rgba(255, 252, 240, 0.96) !important'), 'Light mode must override Tailwind --color-card token');
+  assert.ok(lightCss.includes('--background: rgb(') && lightCss.includes('--color-background: rgb('), 'Light mode must override --background & --color-background');
+  assert.ok(lightCss.includes('--color-muted-foreground: #475569 !important'), 'Light mode must override Tailwind --color-muted-foreground token');
+  assert.ok(lightCss.includes('--color-secondary-foreground: #1e293b !important'), 'Light mode must override Tailwind --color-secondary-foreground token');
+  assert.ok(lightCss.includes('--onyx-raised:'), 'Light mode must override --onyx-raised token');
+  assert.match(lightCss, /\[data-mention-menu\]/, 'Both modes should style slash/mention autocomplete popup [data-mention-menu]');
+  assert.ok(darkCss.includes('[data-mention-menu]'), 'Dark mode should also style [data-mention-menu] with Zero Live Blur');
   assert.match(lightCss, /\[class\*="@container\/titlebar"\]\s*:is\(/, 'Light mode must force readable ink on titlebar descendants');
   assert.match(lightCss, /\.surface-composer[\s\S]*p\.pointer-events-none/, 'Light mode must force dark muted placeholder inside composer');
   assert.ok(lightCss.includes('[data-side-panel-body="true"]'), 'Light mode must ensure dark readable ink inside side panel markdown views');

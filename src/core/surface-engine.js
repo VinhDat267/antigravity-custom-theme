@@ -234,19 +234,46 @@ export function buildStylesheet(config, customMedia = {}) {
         enabled && isLight
           ? `
         color-scheme: light !important;
+        --background: rgb(${overlayRgb}) !important;
+        --color-background: rgb(${overlayRgb}) !important;
+        --content: rgb(${overlayRgb}) !important;
+        --card: rgba(255, 252, 240, 0.96) !important;
+        --color-card: rgba(255, 252, 240, 0.96) !important;
+        --popover: rgba(255, 252, 240, 0.98) !important;
+        --color-popover: rgba(255, 252, 240, 0.98) !important;
+        --glass: rgba(255, 252, 240, 0.95) !important;
+        --shell: rgba(${overlayRgb}, 0.92) !important;
+        --glass-border: rgba(15, 23, 42, 0.14) !important;
+        --glass-highlight: rgba(255, 255, 255, 0.72) !important;
         --foreground: ${uiInk} !important;
         --color-foreground: ${uiInk} !important;
         --secondary-foreground: #1e293b !important;
+        --color-secondary-foreground: #1e293b !important;
         --muted-foreground: #475569 !important;
+        --color-muted-foreground: #475569 !important;
         --placeholder: #64748b !important;
+        --color-placeholder: #64748b !important;
         --card-foreground: ${uiInk} !important;
         --popover-foreground: ${uiInk} !important;
+        --primary-foreground: #ffffff !important;
+        --color-primary-foreground: #ffffff !important;
         --code-foreground: #7c2d12 !important;
+        --color-code: #7c2d12 !important;
         --link: #0369a1 !important;
+        --color-link: #0369a1 !important;
         --secondary: rgba(15, 23, 42, 0.075) !important;
+        --color-secondary: rgba(15, 23, 42, 0.075) !important;
         --muted: rgba(15, 23, 42, 0.05) !important;
+        --color-muted: rgba(15, 23, 42, 0.05) !important;
         --border: rgba(15, 23, 42, 0.14) !important;
+        --color-border: rgba(15, 23, 42, 0.14) !important;
         --card-border: rgba(15, 23, 42, 0.14) !important;
+        --color-card-border: rgba(15, 23, 42, 0.14) !important;
+        --onyx-frame: rgba(${overlayRgb}, 0.85) !important;
+        --onyx-well: rgba(15, 23, 42, 0.06) !important;
+        --onyx-raised: rgba(255, 252, 240, 0.96) !important;
+        --onyx-selected: rgba(255, 255, 255, 0.92) !important;
+        --onyx-key: #ffffff !important;
       `
           : ''
       }
@@ -255,17 +282,30 @@ export function buildStylesheet(config, customMedia = {}) {
       enabled && isLight
         ? `
       html.agy-ct-active .settings-modal-container {
+        --background: #18181b !important;
+        --color-background: #18181b !important;
+        --card: #1f1f24 !important;
+        --color-card: #1f1f24 !important;
+        --popover: #1f1f24 !important;
+        --color-popover: #1f1f24 !important;
         --foreground: #f4f4f5 !important;
         --color-foreground: #f4f4f5 !important;
         --secondary-foreground: #e4e4e7 !important;
+        --color-secondary-foreground: #e4e4e7 !important;
         --muted-foreground: #a1a1aa !important;
+        --color-muted-foreground: #a1a1aa !important;
         --placeholder: #71717a !important;
+        --color-placeholder: #71717a !important;
         --card-foreground: #f4f4f5 !important;
         --popover-foreground: #f4f4f5 !important;
         --secondary: rgba(255, 255, 255, 0.08) !important;
+        --color-secondary: rgba(255, 255, 255, 0.08) !important;
         --muted: rgba(255, 255, 255, 0.05) !important;
+        --color-muted: rgba(255, 255, 255, 0.05) !important;
         --border: rgba(255, 255, 255, 0.1) !important;
+        --color-border: rgba(255, 255, 255, 0.1) !important;
         --card-border: rgba(255, 255, 255, 0.12) !important;
+        --color-card-border: rgba(255, 255, 255, 0.12) !important;
         color: #e4e4e7;
       }
     `
@@ -639,8 +679,15 @@ export function buildStylesheet(config, customMedia = {}) {
         color: ${uiInk} !important;
       }
 
-      /* Portaled Model Selector & Floating .agy-overlay Menus (Zero Live Blur) */
-      html.agy-ct-active body.agy-ct-active :is(.agy-overlay, .agy-overlay.surface-glass, .agy-fastpick.surface-glass, .quick-input-widget.surface-glass) {
+      /* Portaled Model Selector & Floating .agy-overlay / Slash Mention Menus (Zero Live Blur) */
+      html.agy-ct-active body.agy-ct-active :is(
+        .agy-overlay,
+        .agy-overlay.surface-glass,
+        .agy-fastpick.surface-glass,
+        .quick-input-widget.surface-glass,
+        [data-mention-menu],
+        [role="listbox"].bg-card
+      ) {
         background: ${
           isLight
             ? `linear-gradient(160deg, color-mix(in srgb, ${accent} 8%, rgba(255, 255, 255, 0.97)) 0%, rgba(${overlayRgb}, 0.98) 100%)`
@@ -661,11 +708,15 @@ export function buildStylesheet(config, customMedia = {}) {
         font-weight: 600 !important;
         letter-spacing: 0.02em !important;
       }
-      body.agy-ct-active .agy-overlay :is(.text-foreground, .text-card-foreground, .text-popover-foreground) {
+      body.agy-ct-active :is(.agy-overlay, [data-mention-menu], [role="listbox"].bg-card) :is(.text-foreground, .text-card-foreground, .text-popover-foreground) {
         color: ${uiInk} !important;
       }
-      body.agy-ct-active .agy-overlay :is(.text-secondary-foreground, .text-muted-foreground) {
+      body.agy-ct-active :is(.agy-overlay, [data-mention-menu], [role="listbox"].bg-card) :is(.text-secondary-foreground, .text-muted-foreground) {
         color: ${uiMuted} !important;
+      }
+      body.agy-ct-active :is([data-mention-menu], [role="listbox"].bg-card) :is([role="option"], [aria-selected="true"], [data-selected="true"]):is(:hover, [aria-selected="true"], [data-selected="true"]) {
+        background: color-mix(in srgb, ${accent} 18%, ${isLight ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.06)'}) !important;
+        color: ${uiInk} !important;
       }
       body.agy-ct-active .agy-overlay .from-card {
         background: none !important;
