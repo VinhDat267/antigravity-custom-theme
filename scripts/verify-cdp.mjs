@@ -38,8 +38,8 @@ export async function inspectLiveTargets({ expectMounted = true, portFileOpts = 
         const launcher = document.getElementById('agy-ct-launcher');
         const sidebarBtn = document.getElementById('agy-ct-sidebar-btn');
         const settingsNav = document.querySelector('[data-agy-ct-nav="custom-theme"]');
-        const pet = document.getElementById('agy-ct-pet');
-        const stickerLayer = document.getElementById('agy-ct-sticker-layer');
+        const pet = document.getElementById('agy-ct-pet-stage');
+        const stickerCount = document.querySelectorAll('.agy-ct-sticker-node').length;
 
         const shellStyle = shell ? getComputedStyle(shell) : null;
         const scrollers = shell
@@ -67,7 +67,8 @@ export async function inspectLiveTargets({ expectMounted = true, portFileOpts = 
           canvasPresent: Boolean(canvas),
           studioOpenerPresent: Boolean(launcher || sidebarBtn || settingsNav),
           petPresent: Boolean(pet),
-          stickerLayerPresent: Boolean(stickerLayer),
+          stickerCount,
+          stickerLayerPresent: stickerCount > 0,
           shellTransparentBg: Boolean(
             shellStyle &&
             (shellStyle.backgroundColor === 'rgba(0, 0, 0, 0)' || shellStyle.backgroundColor === 'transparent')
