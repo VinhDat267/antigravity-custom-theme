@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Antigravity 2.x Custom Theme Preview Sandbox</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif; color: #f4f4f5; background: #0b0d12; }
+    .agy-shell { display: flex; flex-direction: column; height: 100vh; width: 100vw; overflow: hidden; }
+    .mock-topbar { height: 46px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .mock-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+    .bg-sidebar { width: 236px; padding: 14px 10px; display: flex; flex-direction: column; gap: 6px; border-right: 1px solid rgba(255,255,255,0.08); }
+    .mock-nav-btn { background: transparent; color: #cbd5e1; border: none; border-radius: 8px; padding: 8px 10px; text-align: left; cursor: pointer; font-size: 13px; }
+    .mock-nav-btn:hover { background: rgba(255,255,255,0.06); }
+    .mock-main { flex: 1; display: flex; min-width: 0; overflow: hidden; }
+    .mock-chat-col { flex: 1; display: flex; flex-direction: column; min-width: 0; padding: 18px 28px; gap: 16px; overflow-y: auto; }
+    .mock-msg-row { display: flex; justify-content: flex-end; }
+    .mock-composer-wrap { margin-top: auto; padding-top: 10px; }
+    .surface-composer { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+    .mock-browser-pane { width: 42%; display: none; border-left: 1px solid rgba(255,255,255,0.14); background: #ffffff; color: #0f172a; padding: 18px; }
+    body[data-has-browser-hole="true"] .mock-browser-pane { display: block; }
+    .mock-table-wrap { border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; margin-top: 8px; }
+    table { border-collapse: collapse; }
+    th, td { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 6px 12px; white-space: nowrap; font-size: 12.5px; }
+    .mock-pill { padding: 4px 10px; font-size: 12px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="agy-shell" data-agy-mock-shell="true">
+    <div data-agy-topbar class="mock-topbar">
+      <strong>Antigravity 2.x Preview Sandbox</strong>
+      <div style="display:flex;gap:8px;">
+        <button id="toggle-hole-btn" type="button" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:#1b1e28;color:#fff;cursor:pointer;">Toggle Split-Browser Hole</button>
+        <button id="open-studio-btn" type="button" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:#1b1e28;color:#fff;cursor:pointer;">Open Studio (Ctrl+Shift+Y)</button>
+      </div>
+    </div>
+    <div class="mock-body">
+      <div data-testid="sidebar-split" style="display:flex;">
+        <aside class="bg-sidebar" data-sidebar="true">
+          <button type="button" class="mock-nav-btn"><span>New Conversation</span></button>
+          <button type="button" class="mock-nav-btn"><span>Projects</span></button>
+          <button type="button" class="mock-nav-btn"><span>Customizations</span></button>
+          <button type="button" class="mock-nav-btn" data-testid="settings-button"><span>Settings</span></button>
+        </aside>
+      </div>
+      <div class="mock-main">
+        <div class="mock-chat-col overflow-y-auto" data-main-content-body="true">
+          <div class="mock-msg-row">
+            <div data-testid="user-message">
+              <div data-testid="user-message-bubble" style="padding:10px 14px;">
+                Hãy trang trí Antigravity 2.x mượt 120fps với mưa sét, thú cưng và kính mờ nhé!
+              </div>
+            </div>
+          </div>
+
+          <div data-testid="agent-response">
+            <strong>Antigravity Assistant</strong>
+            <p>Đã kích hoạt Zero Live Blur pre-baked glass, hiệu ứng thời tiết canvas và bảo vệ vùng Split-Browser.</p>
+            <div class="mock-table-wrap md-table-scroll">
+              <div class="md-table-frame">
+                <table>
+                  <thead>
+                    <tr><th>Module</th><th>Architecture</th><th>Scroll Budget</th><th>Split-Browser</th><th>Status</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>SurfaceStyleEngine</td><td>Offscreen Pre-baked L-Glass</td><td>120 FPS</td><td>evenodd clip-path</td><td>Active</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="mock-composer-wrap">
+            <div class="surface-composer" data-agy-chat-input>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="mock-pill" data-testid="project-selector-trigger">antigravity-custom-theme</button>
+                <button type="button" class="mock-pill" aria-label="Select Environment">Local Checkout</button>
+                <button type="button" class="mock-pill" data-testid="branch-pill-trigger">feat/custom-theme-suite</button>
+              </div>
+              <textarea rows="2" placeholder="Ask anything, @ to mention..." style="width:100%;background:transparent;border:none;color:inherit;outline:none;resize:none;"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="mock-browser-pane" data-browser-hole="true">
+          <h3 style="margin-top:0;">Embedded Split-Browser Hole</h3>
+          <p>Vùng trình duyệt nhúng này được cắt rỗng bằng <code>polygon(evenodd, ...)</code> nên không bị ảnh nền, kính mờ, hay hạt thời tiết che phủ.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="./dist/antigravity-theme.js"></script>
+  <script>
+    document.getElementById('toggle-hole-btn').addEventListener('click', () => {
+      const next = document.body.getAttribute('data-has-browser-hole') !== 'true';
+      document.body.setAttribute('data-has-browser-hole', next ? 'true' : 'false');
+    });
+    document.getElementById('open-studio-btn').addEventListener('click', () => {
+      window.__AGY_CUSTOM_THEME__?.openSettings?.();
+    });
+  </script>
+</body>
+</html>

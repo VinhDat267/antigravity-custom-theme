@@ -1,0 +1,270 @@
+/**
+ * Animated SVG Mascots / Interactive Pets & Agent 4-Point Star generator.
+ */
+
+export const MASCOT_TEMPLATES = {
+  'loi-kiem': {
+    id: 'loi-kiem',
+    name: 'Lôi Kiếm Chibi',
+    nameEn: 'Thunder Blade',
+    accent: '#f5c451',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lkGold" x1="0" y1="0" x2="96" y2="96" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fef08a"/><stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="lkRobe" x1="28" y1="42" x2="68" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1e293b"/><stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <g class="agy-ct-anim-spark">
+    <path d="M18 32L28 24L23 36L31 31" stroke="#fde047" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M77 28L67 36L74 40L65 49" stroke="#facc15" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <path d="M29 76C29 59 37 52 48 52C59 52 67 59 67 76L61 84H35L29 76Z" fill="url(#lkRobe)" stroke="#f5c451" stroke-width="1.6"/>
+  <path d="M36 56L48 69L60 56" stroke="url(#lkGold)" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M22 72L74 34" stroke="#e2e8f0" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M20 74L30 66" stroke="url(#lkGold)" stroke-width="4.5" stroke-linecap="round"/>
+  <circle cx="48" cy="36" r="17" fill="#fde68a" stroke="#f59e0b" stroke-width="1.5"/>
+  <path d="M30 35C30 22 39 16 49 16C60 16 67 23 66 36C62 29 57 26 52 29L48 22L42 29C37 26 33 29 30 35Z" fill="#f59e0b"/>
+  <g class="agy-ct-anim-blink" style="transform-origin:48px 38px">
+    <ellipse cx="42" cy="38" rx="2.4" ry="3" fill="#0f172a"/>
+    <ellipse cx="54" cy="38" rx="2.4" ry="3" fill="#0f172a"/>
+    <circle cx="42.8" cy="37" r="0.9" fill="#fff"/>
+    <circle cx="54.8" cy="37" r="0.9" fill="#fff"/>
+  </g>
+  <path d="M45 43Q48 45.5 51 43" stroke="#92400e" stroke-width="1.6" stroke-linecap="round"/>
+</svg>`;
+    }
+  },
+  'rong-ngoc': {
+    id: 'rong-ngoc',
+    name: 'Rồng Ngọc',
+    nameEn: 'Jade Dragon',
+    accent: '#34d399',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rnBody" x1="20" y1="20" x2="78" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6ee7b7"/><stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <g class="agy-ct-anim-wag" style="transform-origin:34px 66px">
+    <path d="M32 68C18 68 13 55 20 45C23 51 28 53 34 54" stroke="#10b981" stroke-width="6" stroke-linecap="round"/>
+    <path d="M16 44L23 41L20 49Z" fill="#fde047"/>
+  </g>
+  <ellipse cx="49" cy="60" rx="18" ry="19" fill="url(#rnBody)" stroke="#a7f3d0" stroke-width="1.5"/>
+  <ellipse cx="49" cy="63" rx="10" ry="12" fill="#d1fae5" opacity="0.85"/>
+  <circle cx="49" cy="36" r="16" fill="url(#rnBody)" stroke="#a7f3d0" stroke-width="1.5"/>
+  <path d="M36 22L31 12L41 19Z" fill="#fbbf24"/>
+  <path d="M62 22L67 12L57 19Z" fill="#fbbf24"/>
+  <g class="agy-ct-anim-blink" style="transform-origin:49px 36px">
+    <circle cx="43" cy="36" r="2.8" fill="#064e3b"/>
+    <circle cx="55" cy="36" r="2.8" fill="#064e3b"/>
+    <circle cx="44" cy="35" r="1" fill="#ecfdf5"/>
+    <circle cx="56" cy="35" r="1" fill="#ecfdf5"/>
+  </g>
+  <circle cx="66" cy="24" r="3" fill="#fef08a" class="agy-ct-anim-twinkle"/>
+</svg>`;
+    }
+  },
+  'ho-ly-chibi': {
+    id: 'ho-ly-chibi',
+    name: 'Hồ Ly Chibi',
+    nameEn: 'Chibi Fox',
+    accent: '#fb923c',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g class="agy-ct-anim-wag" style="transform-origin:34px 66px">
+    <path d="M34 68C16 74 11 54 22 44C28 49 32 58 35 64Z" fill="#fb923c" stroke="#fed7aa" stroke-width="1.4"/>
+    <path d="M22 44C17 48 16 53 19 56C22 53 24 49 22 44Z" fill="#fff7ed"/>
+  </g>
+  <ellipse cx="50" cy="63" rx="16" ry="17" fill="#fb923c" stroke="#ffedd5" stroke-width="1.4"/>
+  <ellipse cx="50" cy="65" rx="9" ry="11" fill="#fff7ed"/>
+  <path d="M35 28L30 12L44 22Z" fill="#ea580c" stroke="#fed7aa" stroke-width="1.2"/>
+  <path d="M65 28L70 12L56 22Z" fill="#ea580c" stroke="#fed7aa" stroke-width="1.2"/>
+  <circle cx="50" cy="38" r="16" fill="#fb923c" stroke="#ffedd5" stroke-width="1.4"/>
+  <path d="M35 41C39 49 61 49 65 41C60 44 55 43 50 40C45 43 40 44 35 41Z" fill="#fff7ed"/>
+  <g class="agy-ct-anim-blink" style="transform-origin:50px 37px">
+    <circle cx="44" cy="36" r="2.6" fill="#1c1917"/>
+    <circle cx="56" cy="36" r="2.6" fill="#1c1917"/>
+    <circle cx="44.8" cy="35" r="0.9" fill="#fff"/>
+    <circle cx="56.8" cy="35" r="0.9" fill="#fff"/>
+  </g>
+  <circle cx="50" cy="41" r="1.8" fill="#431407"/>
+</svg>`;
+    }
+  },
+  'meo-than': {
+    id: 'meo-than',
+    name: 'Mèo Than',
+    nameEn: 'Soot Kitty',
+    accent: '#94a3b8',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g class="agy-ct-anim-wag" style="transform-origin:62px 68px">
+    <path d="M64 68C76 68 81 55 74 47" stroke="#334155" stroke-width="5.5" stroke-linecap="round"/>
+  </g>
+  <ellipse cx="48" cy="63" rx="17" ry="16" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+  <path d="M35 30L31 14L44 24Z" fill="#1e293b" stroke="#64748b" stroke-width="1.3"/>
+  <path d="M61 30L65 14L52 24Z" fill="#1e293b" stroke="#64748b" stroke-width="1.3"/>
+  <circle cx="48" cy="39" r="16" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+  <g class="agy-ct-anim-blink" style="transform-origin:48px 39px">
+    <ellipse cx="42" cy="39" rx="3" ry="3.4" fill="#fde047"/>
+    <ellipse cx="54" cy="39" rx="3" ry="3.4" fill="#fde047"/>
+    <ellipse cx="42" cy="39" rx="1.1" ry="2.4" fill="#0f172a"/>
+    <ellipse cx="54" cy="39" rx="1.1" ry="2.4" fill="#0f172a"/>
+  </g>
+  <path d="M46 44L48 46L50 44" stroke="#f472b6" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="48" cy="52" r="2.6" fill="#fbbf24"/>
+</svg>`;
+    }
+  },
+  'meo-huyen-thuat': {
+    id: 'meo-huyen-thuat',
+    name: 'Mèo Huyền Thuật',
+    nameEn: 'Arcane Cat',
+    accent: '#c084fc',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="48" cy="48" r="34" stroke="#a855f7" stroke-width="1.2" stroke-dasharray="4 4" class="agy-ct-anim-spin" style="transform-origin:48px 48px" opacity="0.65"/>
+  <ellipse cx="48" cy="64" rx="15" ry="15" fill="#312e81" stroke="#c084fc" stroke-width="1.5"/>
+  <path d="M35 30L30 14L44 24Z" fill="#312e81" stroke="#c084fc" stroke-width="1.3"/>
+  <path d="M61 30L66 14L52 24Z" fill="#312e81" stroke="#c084fc" stroke-width="1.3"/>
+  <circle cx="48" cy="40" r="15" fill="#312e81" stroke="#c084fc" stroke-width="1.5"/>
+  <path d="M48 28L50 32L54 32L51 35L48 33L45 35L42 32L46 32Z" fill="#e9d5ff"/>
+  <g class="agy-ct-anim-blink" style="transform-origin:48px 41px">
+    <circle cx="42" cy="41" r="2.8" fill="#e879f9"/>
+    <circle cx="54" cy="41" r="2.8" fill="#e879f9"/>
+    <circle cx="42" cy="41" r="1" fill="#fdf4ff"/>
+    <circle cx="54" cy="41" r="1" fill="#fdf4ff"/>
+  </g>
+</svg>`;
+    }
+  },
+  'phu-thuy-anh-trang': {
+    id: 'phu-thuy-anh-trang',
+    name: 'Phù Thủy Ánh Trăng',
+    nameEn: 'Moonlight Witch',
+    accent: '#a78bfa',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 76L76 62" stroke="#92400e" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M16 78L27 71L25 81Z" fill="#fbbf24"/>
+  <path d="M37 72L48 48L59 72Z" fill="#4c1d95" stroke="#c4b5fd" stroke-width="1.4"/>
+  <circle cx="48" cy="40" r="12" fill="#fde68a"/>
+  <path d="M26 32H70L54 22L48 8L42 22Z" fill="#3b0764" stroke="#c084fc" stroke-width="1.5" stroke-linejoin="round"/>
+  <rect x="40" y="25" width="16" height="4" rx="2" fill="#f59e0b"/>
+  <g class="agy-ct-anim-blink" style="transform-origin:48px 40px">
+    <circle cx="44" cy="40" r="2" fill="#1e1b4b"/>
+    <circle cx="52" cy="40" r="2" fill="#1e1b4b"/>
+  </g>
+  <circle cx="72" cy="24" r="3" fill="#fef08a" class="agy-ct-anim-twinkle"/>
+</svg>`;
+    }
+  },
+  'hoa-anh-dao': {
+    id: 'hoa-anh-dao',
+    name: 'Tinh Linh Anh Đào',
+    nameEn: 'Sakura Spirit',
+    accent: '#f472b6',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(48 48)">
+    <g class="agy-ct-anim-spin" style="transform-origin:0 0">
+      <ellipse cx="0" cy="-22" rx="11" ry="16" fill="#fbcfe8" stroke="#f472b6" stroke-width="1.4"/>
+      <ellipse cx="21" cy="-7" rx="11" ry="16" transform="rotate(72 21 -7)" fill="#fbcfe8" stroke="#f472b6" stroke-width="1.4"/>
+      <ellipse cx="13" cy="18" rx="11" ry="16" transform="rotate(144 13 18)" fill="#fbcfe8" stroke="#f472b6" stroke-width="1.4"/>
+      <ellipse cx="-13" cy="18" rx="11" ry="16" transform="rotate(216 -13 18)" fill="#fbcfe8" stroke="#f472b6" stroke-width="1.4"/>
+      <ellipse cx="-21" cy="-7" rx="11" ry="16" transform="rotate(288 -21 -7)" fill="#fbcfe8" stroke="#f472b6" stroke-width="1.4"/>
+    </g>
+    <circle cx="0" cy="0" r="12" fill="#fdf2f8" stroke="#ec4899" stroke-width="1.6"/>
+    <g class="agy-ct-anim-blink">
+      <circle cx="-4" cy="-1" r="1.8" fill="#831843"/>
+      <circle cx="4" cy="-1" r="1.8" fill="#831843"/>
+    </g>
+    <path d="M-2.5 3Q0 5.5 2.5 3" stroke="#be185d" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+</svg>`;
+    }
+  },
+  'den-long': {
+    id: 'den-long',
+    name: 'Đèn Lồng Tiên',
+    nameEn: 'Spirit Lantern',
+    accent: '#fb7185',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="dlGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef08a"/><stop offset="65%" stop-color="#f43f5e"/><stop offset="100%" stop-color="#9f1239"/>
+    </radialGradient>
+  </defs>
+  <line x1="48" y1="8" x2="48" y2="20" stroke="#fbbf24" stroke-width="2.2"/>
+  <rect x="35" y="18" width="26" height="6" rx="3" fill="#fbbf24"/>
+  <ellipse cx="48" cy="46" rx="22" ry="24" fill="url(#dlGlow)" stroke="#fda4af" stroke-width="1.6"/>
+  <ellipse cx="48" cy="46" rx="11" ry="24" stroke="#fecdd3" stroke-width="1.2" opacity="0.65"/>
+  <rect x="35" y="68" width="26" height="6" rx="3" fill="#fbbf24"/>
+  <path d="M44 74L42 88M48 74V90M52 74L54 88" stroke="#f59e0b" stroke-width="2.2" stroke-linecap="round"/>
+  <g class="agy-ct-anim-blink" style="transform-origin:48px 44px">
+    <circle cx="42" cy="44" r="2.2" fill="#4c0519"/>
+    <circle cx="54" cy="44" r="2.2" fill="#4c0519"/>
+  </g>
+</svg>`;
+    }
+  },
+  'ca-koi': {
+    id: 'ca-koi',
+    name: 'Cá Koi Tinh Tú',
+    nameEn: 'Cosmic Koi',
+    accent: '#60a5fa',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g class="agy-ct-anim-wag" style="transform-origin:34px 52px">
+    <path d="M26 56L10 42C12 52 12 60 10 68L26 56Z" fill="#93c5fd" stroke="#e0f2fe" stroke-width="1.3"/>
+  </g>
+  <path d="M24 54C32 32 62 28 76 46C65 65 36 68 24 54Z" fill="#3b82f6" stroke="#bae6fd" stroke-width="1.6"/>
+  <path d="M40 36C48 34 55 40 53 46C46 47 41 43 40 36Z" fill="#fb923c"/>
+  <path d="M52 54C58 50 64 51 66 56C60 60 54 59 52 54Z" fill="#f8fafc"/>
+  <circle cx="66" cy="45" r="2.4" fill="#0f172a"/>
+  <circle cx="66.8" cy="44.2" r="0.8" fill="#fff"/>
+  <circle cx="78" cy="30" r="2.5" fill="#fef08a" class="agy-ct-anim-twinkle"/>
+</svg>`;
+    }
+  }
+};
+
+export function renderMascotSvg(id, variant = 'pet') {
+  const tpl = MASCOT_TEMPLATES[id] || MASCOT_TEMPLATES['rong-ngoc'];
+  return tpl.render(variant);
+}
+
+export function renderAgentStarSvg(primaryHex = '#60a5fa', secondaryHex = '#f5c451') {
+  const safePrimary = /^#[0-9a-fA-F]{3,8}$/.test(String(primaryHex)) ? primaryHex : '#60a5fa';
+  const safeSecondary = /^#[0-9a-fA-F]{3,8}$/.test(String(secondaryHex)) ? secondaryHex : '#f5c451';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="star" x1="12" y1="12" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="${safePrimary}"/>
+      <stop offset="100%" stop-color="${safeSecondary}"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="32" fill="url(#bg)"/>
+  <path d="M32 10L37.5 26.5L54 32L37.5 37.5L32 54L26.5 37.5L10 32L26.5 26.5Z" fill="url(#star)"/>
+</svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}

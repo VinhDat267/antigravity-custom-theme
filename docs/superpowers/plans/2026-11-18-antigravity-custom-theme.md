@@ -103,7 +103,7 @@
 - [ ] **Step 1: Write failing tests in `test/config-store.test.mjs`**
   - Test deep merge & `resetConfig` preserving `hiddenWallpapers` and `customBundles`.
   - Test ephemeral port boot priority: given empty `localStorage` or stale `localStorage` (`__savedAt: 100`) and `__AGY_THEME_BOOT__.config` (`__savedAt: 200`, `wallpaperId: 'kanagawa-wave'`), `loadConfig(mockWin)` returns `kanagawa-wave` and syncs cache.
-  - Test `sanitizeImportedConfig` clamps `dimming: 500 -> 92`, `glassBlur: -9 -> 0`, strips `C:\Users\VinhDat\secret.png` to `''`, and strips `</style><script>alert(1)</script>` inside `customCss`.
+  - Test `sanitizeImportedConfig` clamps `dimming: 500 -> 92`, `glassBlur: -9 -> 0`, strips `C:\Users\DemoUser\secret.png` to `''`, and strips `</style><script>alert(1)</script>` inside `customCss`.
   - Test `saveConfig` and `saveCustomMedia` emit valid JSON payloads to `mockWin.__agyThemeBridge`.
 
 - [ ] **Step 2: Run test to verify it fails**
