@@ -588,6 +588,88 @@ export function buildStylesheet(config, customMedia = {}) {
         border: 1px solid color-mix(in srgb, ${accent} 30%, rgba(255, 255, 255, 0.14)) !important;
         border-radius: 8px !important;
       }
+
+      /* Right-Side Overview Panel Card & Inner Rows (Zero Live Blur) */
+      html.agy-ct-active body.agy-ct-active :is(
+        .animate-overview-panel,
+        [data-testid="overview-panel-host-overlay"],
+        [data-testid="overview-panel-host-gutter"],
+        [data-testid="overview-panel-host-sibling"],
+        div:has(> [data-testid="battle-overview-dropdown"])
+      ) {
+        background: ${
+          isLight
+            ? `linear-gradient(160deg, color-mix(in srgb, ${accent} 8%, rgba(255, 255, 255, 0.97)) 0%, rgba(${overlayRgb}, 0.98) 100%)`
+            : `linear-gradient(160deg, color-mix(in srgb, ${accent} 11%, rgba(${overlayRgb}, 0.96)) 0%, rgba(${overlayRgb}, 0.985) 100%)`
+        } !important;
+        color: ${uiInk} !important;
+        border: 1px solid color-mix(in srgb, ${accent} 34%, ${isLight ? 'rgba(15, 23, 42, 0.14)' : 'rgba(255, 255, 255, 0.14)'}) !important;
+        border-radius: 12px !important;
+        box-shadow:
+          inset 0 1px 0 ${isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(255, 255, 255, 0.1)'},
+          0 18px 42px -10px rgba(0, 0, 0, ${isLight ? '0.18' : '0.72'}),
+          0 0 24px color-mix(in srgb, ${accent} 14%, transparent) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        contain: style;
+      }
+      body.agy-ct-active [data-testid="overview-panel"] :is(.border-border, .divide-border > :not([hidden]) ~ :not([hidden])) {
+        border-color: color-mix(in srgb, ${accent} 22%, ${isLight ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.08)'}) !important;
+      }
+      body.agy-ct-active [data-testid="overview-panel"] .agy-hover-label.opacity-50 {
+        color: color-mix(in srgb, ${accent} 70%, ${uiMuted}) !important;
+        opacity: 0.92 !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.015em !important;
+      }
+      body.agy-ct-active [data-testid="overview-panel"] button.group:has(.agy-hover-label.opacity-50):is(:hover, :focus-visible) {
+        background: color-mix(in srgb, ${accent} 12%, transparent) !important;
+        color: ${uiInk} !important;
+      }
+      body.agy-ct-active [data-testid="overview-panel"] button.group:has(.agy-hover-label.opacity-50):is(:hover, :focus-visible) .agy-hover-label.opacity-50 {
+        color: ${uiInk} !important;
+        opacity: 1 !important;
+      }
+      body.agy-ct-active [data-testid="overview-panel"] .rounded-full:is(.bg-border, .bg-muted, .bg-secondary) {
+        background: color-mix(in srgb, ${accent} 18%, ${isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.06)'}) !important;
+        border: 1px solid color-mix(in srgb, ${accent} 36%, transparent) !important;
+        color: ${isLight ? uiInk : `color-mix(in srgb, ${accent} 80%, #ffffff)`} !important;
+        opacity: 1 !important;
+      }
+      body.agy-ct-active [data-testid="overview-panel-customize-trigger"] {
+        color: ${uiMuted} !important;
+        border-radius: 6px !important;
+      }
+      body.agy-ct-active [data-testid="overview-panel-customize-trigger"]:is(:hover, :focus-visible, [aria-expanded="true"], [data-popup-open]),
+      body.agy-ct-active .agy-shell [data-testid="toggle-overview-panel"]:is(:hover, [aria-expanded="true"], [data-popup-open], .bg-secondary) {
+        background: color-mix(in srgb, ${accent} 18%, transparent) !important;
+        color: ${uiInk} !important;
+      }
+      body.agy-ct-active [data-testid="overview-panel"] :is(.agy-hover-row, [data-testid^="overview-panel-row-"]) {
+        color: ${uiMuted} !important;
+        border-radius: 8px !important;
+        transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease !important;
+      }
+      body.agy-ct-active [data-testid="overview-panel"] :is(.agy-hover-row, [data-testid^="overview-panel-row-"]) :is(svg, .google-symbols, .material-symbols-outlined) {
+        color: color-mix(in srgb, ${accent} 36%, ${uiMuted}) !important;
+        transition: color 120ms ease !important;
+      }
+      body.agy-ct-active [data-testid="overview-panel"] :is(.agy-hover-row, [data-testid^="overview-panel-row-"]):is(:hover, :focus-visible, :has(:focus-visible), [data-popup-open], [aria-expanded="true"]) {
+        background: color-mix(in srgb, ${accent} 18%, ${isLight ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.06)'}) !important;
+        color: ${uiInk} !important;
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, ${accent} 28%, transparent) !important;
+      }
+      body.agy-ct-active [data-testid="overview-panel"] :is(.agy-hover-row, [data-testid^="overview-panel-row-"]):is(:hover, :focus-visible, :has(:focus-visible), [data-popup-open], [aria-expanded="true"]) :is(svg, .google-symbols, .material-symbols-outlined) {
+        color: ${accent} !important;
+      }
+      body.agy-ct-active [data-testid="overview-panel"] :is(.agy-hover-row, [data-testid^="overview-panel-row-"]).bg-secondary {
+        background: color-mix(in srgb, ${accent} 14%, transparent) !important;
+        color: ${uiInk} !important;
+      }
+      body.agy-ct-active [data-testid="overview-panel"] .agy-hover-actions button:is(:hover, :focus-visible) {
+        background: color-mix(in srgb, ${accent} 22%, transparent) !important;
+        color: ${uiInk} !important;
+      }
     `
         : ''
     }

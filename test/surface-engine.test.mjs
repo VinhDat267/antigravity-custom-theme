@@ -291,3 +291,25 @@ test('buildStylesheet avoids bubble-mascot drop-shadow filters, enables GPU tran
   }
 });
 
+test('buildStylesheet themes Overview Panel card hosts, section headers, count badges, and rows in dark and light modes without matching full-pane overview-panel-host', () => {
+  for (const isLight of [false, true]) {
+    const css = buildStylesheet({ ...DEFAULT_CONFIG, enabled: true, isLight }, {});
+    assertBalancedCssBraces(css);
+    assert.ok(!/backdrop-filter:\s*blur\(/i.test(css));
+
+    assert.ok(css.includes('.animate-overview-panel'));
+    assert.ok(css.includes('[data-testid="overview-panel-host-overlay"]'));
+    assert.ok(css.includes('[data-testid="overview-panel-host-gutter"]'));
+    assert.ok(css.includes('[data-testid="overview-panel-host-sibling"]'));
+    assert.ok(css.includes('[data-testid="battle-overview-dropdown"]'));
+
+    assert.ok(css.includes('[data-testid="overview-panel"]'));
+    assert.ok(css.includes('[data-testid="overview-panel-customize-trigger"]'));
+    assert.ok(css.includes('[data-testid^="overview-panel-row-"]'));
+    assert.ok(css.includes('.rounded-full:is(.bg-border, .bg-muted, .bg-secondary)'));
+
+    assert.ok(!css.includes('[data-testid="overview-panel-host"]'));
+    assert.ok(!css.includes('[data-testid^="overview-panel-host-"]'));
+  }
+});
+
