@@ -275,7 +275,7 @@ export const THEME_BUNDLES = [
       atmosphereIntensity: 68,
       bubbleId: 'mu-rom-hai-tac',
       inputId: 'dai-duong-sunny',
-      pet: { enabled: true, id: 'luffy-chibi', size: 88, mode: 'float', opacity: 96, pos: { xPct: 22, yPct: 14 }, showSpeechOnClick: true },
+      pet: { enabled: true, id: 'luffy-anime', size: 176, mode: 'float', opacity: 96, pos: { xPct: 82, yPct: 48 }, showSpeechOnClick: true },
       stickers: {
         enabled: true,
         items: [
@@ -337,7 +337,7 @@ export const THEME_BUNDLES = [
       atmosphereIntensity: 62,
       bubbleId: 'gear5-nika',
       inputId: 'nika-liberation',
-      pet: { enabled: true, id: 'luffy-gear5', size: 90, mode: 'float', opacity: 96, pos: { xPct: 22, yPct: 14 }, showSpeechOnClick: true },
+      pet: { enabled: true, id: 'luffy-gear5-anime', size: 176, mode: 'float', opacity: 96, pos: { xPct: 82, yPct: 48 }, showSpeechOnClick: true },
       stickers: {
         enabled: true,
         items: [

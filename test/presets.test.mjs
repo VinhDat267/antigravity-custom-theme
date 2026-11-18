@@ -175,7 +175,9 @@ test('One Piece dual theme bundles, Gear 5 Nika bundle, bubbles, and composer in
   assert.equal(sunset.patch.wallpaperId, 'one-piece-sunny-sunset');
   assert.equal(sunset.patch.bubbleId, 'mu-rom-hai-tac');
   assert.equal(sunset.patch.inputId, 'dai-duong-sunny');
-  assert.equal(sunset.patch.pet.id, 'luffy-chibi');
+  assert.equal(sunset.patch.pet.id, 'luffy-anime');
+  assert.equal(sunset.patch.pet.size, 176);
+  assert.deepEqual(sunset.patch.pet.pos, { xPct: 82, yPct: 48 });
 
   const strawHatBubble = BUBBLE_PRESETS.find((b) => b.id === 'mu-rom-hai-tac');
   assert.ok(strawHatBubble, 'Missing mu-rom-hai-tac bubble preset');
@@ -199,7 +201,9 @@ test('One Piece dual theme bundles, Gear 5 Nika bundle, bubbles, and composer in
   assert.equal(nika.patch.bubbleId, 'gear5-nika');
   assert.equal(nika.patch.inputId, 'nika-liberation');
   assert.equal(nika.patch.atmosphereId, 'thunder-rain');
-  assert.equal(nika.patch.pet.id, 'luffy-gear5');
+  assert.equal(nika.patch.pet.id, 'luffy-gear5-anime');
+  assert.equal(nika.patch.pet.size, 176);
+  assert.deepEqual(nika.patch.pet.pos, { xPct: 82, yPct: 48 });
 
   const gear5Bubble = BUBBLE_PRESETS.find((b) => b.id === 'gear5-nika');
   assert.ok(gear5Bubble, 'Missing gear5-nika bubble preset');
