@@ -6,7 +6,7 @@
   "description": "Zero-patch 60-120fps CDP Custom Theme Suite for Google Antigravity 2.x on Windows",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node --test test",
+    "test": "node --test",
     "start": "node cli.mjs start",
     "stop": "node cli.mjs stop",
     "status": "node cli.mjs status",
