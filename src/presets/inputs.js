@@ -92,5 +92,25 @@ export const INPUT_PRESETS = [
     focusBorder: '#4d699b',
     shadow: '0 6px 20px rgba(15, 23, 42, 0.12)',
     radius: '14px'
+  },
+  {
+    id: 'dai-duong-sunny',
+    name: 'Boong Tàu Hoàng Hôn',
+    nameEn: 'Sunny Sunset Deck',
+    bg: 'linear-gradient(145deg, rgba(14, 21, 36, 0.9), rgba(24, 30, 44, 0.93))',
+    border: '1.5px solid rgba(245, 196, 81, 0.5)',
+    focusBorder: '#d7474b',
+    shadow: '0 6px 24px rgba(0, 0, 0, 0.46), 0 0 16px rgba(245, 196, 81, 0.2)',
+    radius: '16px'
+  },
+  {
+    id: 'hai-do-co',
+    name: 'Hải Đồ Giấy Cổ (Sáng)',
+    nameEn: 'Grand Line Chart (Light)',
+    bg: 'linear-gradient(145deg, rgba(252, 246, 228, 0.94), rgba(240, 227, 194, 0.92))',
+    border: '1.5px solid rgba(146, 64, 14, 0.36)',
+    focusBorder: '#d7474b',
+    shadow: '0 6px 20px rgba(69, 39, 19, 0.14)',
+    radius: '14px'
   }
 ];

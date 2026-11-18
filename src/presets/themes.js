@@ -253,5 +253,67 @@ export const THEME_BUNDLES = [
       pet: { enabled: false, id: 'none', size: 80, mode: 'float', opacity: 95, pos: { xPct: 22, yPct: 14 }, showSpeechOnClick: true },
       stickers: { enabled: false, items: [] }
     }
+  },
+  {
+    id: 'one-piece-sunny-sunset',
+    name: 'Hoàng Hôn Thousand Sunny',
+    nameEn: 'Thousand Sunny Sunset',
+    subtitle: 'Đại Dương Hoàng Hôn + Bụi Sao + Tàu Sunny',
+    subtitleEn: 'Grand Line sunset + Stardust + Thousand Sunny',
+    badge: 'One Piece',
+    patch: {
+      isLight: false,
+      wallpaperId: 'one-piece-sunny-sunset',
+      dimming: 24,
+      wpBlur: 0,
+      glassBlur: 4,
+      surfaces: { sidebarOpacity: 50, headerOpacity: 42, aiCardOpacity: 62, codeOpacity: 60 },
+      accentColor: '#d7474b',
+      secondaryColor: '#f5c451',
+      overlayRgb: '14, 21, 36',
+      atmosphereId: 'stardust',
+      atmosphereIntensity: 68,
+      bubbleId: 'mu-rom-hai-tac',
+      inputId: 'dai-duong-sunny',
+      pet: { enabled: true, id: 'thousand-sunny', size: 88, mode: 'float', opacity: 96, pos: { xPct: 22, yPct: 14 }, showSpeechOnClick: true },
+      stickers: {
+        enabled: true,
+        items: [
+          { id: 'mu-rom', slot: 'input-top-right', size: 52, glow: true, opacity: 96 },
+          { id: 'jolly-roger', slot: 'sidebar-bottom-right', size: 46, glow: true, opacity: 94 }
+        ]
+      }
+    }
+  },
+  {
+    id: 'one-piece-grand-line-bounty',
+    name: 'Hải Đồ & Truy Nã (Sáng)',
+    nameEn: 'Grand Line Bounty (Light)',
+    subtitle: 'Hải Đồ Giấy Cổ + Hoa Anh Đào + Chopper',
+    subtitleEn: 'Grand Line chart + Drum sakura + Chopper',
+    badge: 'One Piece · Sáng',
+    patch: {
+      isLight: true,
+      wallpaperId: 'one-piece-grand-line-map',
+      dimming: 10,
+      wpBlur: 0,
+      glassBlur: 4,
+      surfaces: { sidebarOpacity: 74, headerOpacity: 70, aiCardOpacity: 80, codeOpacity: 76 },
+      accentColor: '#d7474b',
+      secondaryColor: '#4d699b',
+      overlayRgb: '244, 234, 206',
+      atmosphereId: 'sakura',
+      atmosphereIntensity: 45,
+      bubbleId: 'lenh-truy-na',
+      inputId: 'hai-do-co',
+      pet: { enabled: true, id: 'chopper-chibi', size: 86, mode: 'float', opacity: 96, pos: { xPct: 22, yPct: 15 }, showSpeechOnClick: true },
+      stickers: {
+        enabled: true,
+        items: [
+          { id: 'log-pose', slot: 'input-top-right', size: 50, glow: false, opacity: 95 },
+          { id: 'mu-rom', slot: 'input-top-left', size: 46, glow: false, opacity: 94 }
+        ]
+      }
+    }
   }
 ];

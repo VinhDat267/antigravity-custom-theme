@@ -151,3 +151,28 @@ test('One Piece wallpapers, mascots, and stickers provide valid SVG markup, slug
     }
   }
 });
+
+test('One Piece dual theme bundles, bubbles, and composer inputs are registered with valid cross-references', () => {
+  const byBundleId = Object.fromEntries(THEME_BUNDLES.map((b) => [b.id, b]));
+  const sunset = byBundleId['one-piece-sunny-sunset'];
+  const bounty = byBundleId['one-piece-grand-line-bounty'];
+
+  assert.ok(sunset, 'Missing one-piece-sunny-sunset bundle');
+  assert.equal(sunset.patch.isLight, false);
+  assert.equal(sunset.patch.wallpaperId, 'one-piece-sunny-sunset');
+  assert.equal(sunset.patch.bubbleId, 'mu-rom-hai-tac');
+  assert.equal(sunset.patch.inputId, 'dai-duong-sunny');
+  assert.equal(sunset.patch.pet.id, 'thousand-sunny');
+
+  assert.ok(bounty, 'Missing one-piece-grand-line-bounty bundle');
+  assert.equal(bounty.patch.isLight, true);
+  assert.equal(bounty.patch.wallpaperId, 'one-piece-grand-line-map');
+  assert.equal(bounty.patch.bubbleId, 'lenh-truy-na');
+  assert.equal(bounty.patch.inputId, 'hai-do-co');
+  assert.equal(bounty.patch.pet.id, 'chopper-chibi');
+
+  const lenhTruyNa = BUBBLE_PRESETS.find((b) => b.id === 'lenh-truy-na');
+  assert.ok(lenhTruyNa, 'Missing lenh-truy-na bubble preset');
+  assert.equal(lenhTruyNa.scrollCaps, true);
+  assert.equal(lenhTruyNa.cornerOrnament, '');
+});

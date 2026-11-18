@@ -40,6 +40,14 @@ const FX_PET_QUIPS = {
   'ca-koi': {
     vi: ['Cá Koi mang may mắn tới nè 🐟', 'Bơi giữa dải ngân hà tinh tú ✨', 'Mọi thứ sẽ trôi chảy như nước~'],
     en: ['Cosmic Koi brings good fortune 🐟', 'Swimming through starlight ✨', 'Flow like water~']
+  },
+  'chopper-chibi': {
+    vi: ['Đừng khen nữa mà, đồ ngốc~ 🌸', 'Bác sĩ Chopper kiểm tra bug giúp bạn nè! 🩺', 'Uống nước và nghỉ ngơi xíu rồi code tiếp nha ✨'],
+    en: ["Stop praising me, you idiot~ 🌸", 'Dr. Chopper reporting for bug checkup! 🩺', 'Drink some water and keep shipping ✨']
+  },
+  'thousand-sunny': {
+    vi: ['Gió thuận rồi, căng buồm ra Tân Thế Giới thôi! 🏴‍☠️', 'Thousand Sunny đang lướt êm ở 120 FPS~ ⛵', 'Coup de Burst tới đích deploy nào! ✨'],
+    en: ['Fair winds ahead—set sail for the New World! 🏴‍☠️', 'Cruising smooth at 120 FPS~ ⛵', 'Coup de Burst straight to deploy! ✨']
   }
 };
 

@@ -210,5 +210,37 @@ export const BUBBLE_PRESETS = [
     scrollCaps: false,
     cyberCorners: false,
     cornerOrnament: 'sakura'
+  },
+  {
+    id: 'mu-rom-hai-tac',
+    name: 'Mũ Rơm Hải Tặc',
+    nameEn: 'Straw Hat Pirate',
+    bg: 'linear-gradient(135deg, rgba(15, 28, 48, 0.92), rgba(38, 19, 28, 0.94))',
+    border: '1px solid rgba(215, 71, 75, 0.58)',
+    frameBg: 'linear-gradient(135deg, #d7474b, #f5c451)',
+    text: '#fef3c7',
+    shadow: '0 4px 18px rgba(0, 0, 0, 0.45), 0 0 14px rgba(215, 71, 75, 0.24)',
+    radius: '14px',
+    mascotId: 'thousand-sunny',
+    mascotAlign: 'right-top',
+    scrollCaps: false,
+    cyberCorners: false,
+    cornerOrnament: 'gold'
+  },
+  {
+    id: 'lenh-truy-na',
+    name: 'Lệnh Truy Nã',
+    nameEn: 'Wanted Bounty',
+    bg: 'linear-gradient(135deg, rgba(252, 243, 217, 0.96), rgba(235, 215, 172, 0.95))',
+    border: '1px solid rgba(146, 64, 14, 0.52)',
+    frameBg: 'linear-gradient(135deg, #b45309, #78350f)',
+    text: '#2b1d0e',
+    shadow: '0 4px 16px rgba(69, 39, 19, 0.18)',
+    radius: '6px',
+    mascotId: 'chopper-chibi',
+    mascotAlign: 'right-top',
+    scrollCaps: true,
+    cyberCorners: false,
+    cornerOrnament: ''
   }
 ];

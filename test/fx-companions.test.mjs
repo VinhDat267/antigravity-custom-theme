@@ -480,3 +480,73 @@ test('PetStage roam mode sleeps rAF once target is reached and wakes on next roa
     globalThis.window = origWin;
   }
 });
+
+test('PetStage triggerClickReaction displays localized One Piece quips for chopper-chibi and thousand-sunny', () => {
+  const origDoc = globalThis.document;
+  const origWin = globalThis.window;
+
+  const makeStubEl = () => ({
+    id: '',
+    className: '',
+    textContent: '',
+    style: { left: '', top: '', transform: '', width: '', height: '', opacity: '', cssText: '', setProperty() {} },
+    children: [],
+    classList: { add() {}, remove() {} },
+    setAttribute() {},
+    getBoundingClientRect: () => ({ left: 100, top: 100, width: 80, height: 80 }),
+    addEventListener() {},
+    remove() {},
+    append(...kids) {
+      this.children.push(...kids);
+    },
+    appendChild(k) {
+      this.children.push(k);
+    }
+  });
+
+  try {
+    globalThis.document = {
+      hidden: false,
+      body: { contains: () => true, appendChild() {} },
+      createElement: () => makeStubEl(),
+      addEventListener() {},
+      removeEventListener() {}
+    };
+    globalThis.window = {
+      innerWidth: 1600,
+      innerHeight: 900,
+      addEventListener() {},
+      removeEventListener() {},
+      requestAnimationFrame: () => 1,
+      cancelAnimationFrame() {}
+    };
+
+    for (const petId of ['chopper-chibi', 'thousand-sunny']) {
+      for (const lang of ['vi', 'en']) {
+        const pet = new PetStage({
+          getConfig: () => ({
+            enabled: true,
+            lang,
+            pet: { enabled: true, id: petId, mode: 'float', size: 86, opacity: 96, pos: { xPct: 22, yPct: 14 }, showSpeechOnClick: true }
+          }),
+          getCustomMedia: () => ({}),
+          getBrowserHoleRect: () => null,
+          onPositionSave: () => {}
+        });
+        try {
+          pet.update();
+          pet.triggerClickReaction();
+          const line = pet.speechEl.textContent;
+          assert.ok(line.length > 0, `Expected non-empty speech line for ${petId} (${lang})`);
+          assert.notEqual(line, 'Xin chào! ✨', `Expected custom VI quip for ${petId}, got fallback`);
+          assert.notEqual(line, 'Hello! ✨', `Expected custom EN quip for ${petId}, got fallback`);
+        } finally {
+          pet.destroy();
+        }
+      }
+    }
+  } finally {
+    globalThis.document = origDoc;
+    globalThis.window = origWin;
+  }
+});

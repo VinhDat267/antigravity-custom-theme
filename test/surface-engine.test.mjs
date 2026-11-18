@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { DEFAULT_CONFIG } from '../src/core/config-store.js';
+import { DEFAULT_CONFIG, sanitizeImportedConfig } from '../src/core/config-store.js';
 import { clearPrebakedGlassMemoryCache, syncPrebakedGlass } from '../src/core/prebaked-glass.js';
 import { computeBrowserHoleClip } from '../src/core/dom-targets.js';
 import { buildStylesheet, SurfaceEngine } from '../src/core/surface-engine.js';
+import { THEME_BUNDLES } from '../src/presets/themes.js';
 
 function assertBalancedCssBraces(css) {
   const cleaned = css
@@ -627,5 +628,29 @@ test('Multi-split perf: buildStylesheet removes universal * selectors, overflow 
     globalThis.requestAnimationFrame = origRaf;
     globalThis.cancelAnimationFrame = origCancelRaf;
   }
+});
+
+test('One Piece Dark & Light bundles emit balanced Zero-Live-Blur CSS without scrollCaps::after conflicts', () => {
+  const sunsetBundle = THEME_BUNDLES.find((b) => b.id === 'one-piece-sunny-sunset');
+  const bountyBundle = THEME_BUNDLES.find((b) => b.id === 'one-piece-grand-line-bounty');
+  assert.ok(sunsetBundle, 'Missing one-piece-sunny-sunset bundle');
+  assert.ok(bountyBundle, 'Missing one-piece-grand-line-bounty bundle');
+
+  const darkCfg = sanitizeImportedConfig({ ...DEFAULT_CONFIG, ...sunsetBundle.patch, activeBundleId: sunsetBundle.id });
+  const darkCss = buildStylesheet(darkCfg, {});
+  assertBalancedCssBraces(darkCss);
+  assert.ok(!/backdrop-filter:\s*blur\(/i.test(darkCss));
+  assert.match(darkCss, /\.agy-ct-bubble-styled::after\s*\{[^}]*background-image:\s*url\("data:image\/svg\+xml/);
+
+  const lightCfg = sanitizeImportedConfig({ ...DEFAULT_CONFIG, ...bountyBundle.patch, activeBundleId: bountyBundle.id });
+  const lightCss = buildStylesheet(lightCfg, {});
+  assertBalancedCssBraces(lightCss);
+  assert.ok(!/backdrop-filter:\s*blur\(/i.test(lightCss));
+  assert.ok(lightCss.includes('#0f172a'));
+  assert.ok(lightCss.includes('width: 8px'), 'scrollCaps must emit 8px scroll cap pseudo-elements');
+  assert.ok(
+    !/\.agy-ct-bubble-styled::after\s*\{[^}]*background-image:/.test(lightCss),
+    'lenh-truy-na must not emit cornerOrnament ::after override over scrollCaps'
+  );
 });
 
