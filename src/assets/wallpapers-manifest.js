@@ -143,6 +143,54 @@ export const WALLPAPERS = [
       <rect width="1600" height="900" fill="url(#obBg)"/><rect width="1600" height="900" fill="url(#obGlow)"/>
     </svg>`),
     previewCss: 'linear-gradient(135deg, #07080d 0%, #172554 100%)'
+  },
+  {
+    id: 'one-piece-sunny-sunset',
+    name: 'Hoàng Hôn Thousand Sunny',
+    nameEn: 'Thousand Sunny Sunset',
+    embeddedDataUri: wpSvgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="opSsSky" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0%" stop-color="#081224"/><stop offset="52%" stop-color="#18294a"/><stop offset="100%" stop-color="#5b2333"/></linearGradient>
+        <radialGradient id="opSsSun" cx="72.5%" cy="40%" r="44%"><stop offset="0%" stop-color="#fde047" stop-opacity="0.45"/><stop offset="45%" stop-color="#f97316" stop-opacity="0.24"/><stop offset="100%" stop-color="#081224" stop-opacity="0"/></radialGradient>
+        <linearGradient id="opSsSea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#132542"/><stop offset="100%" stop-color="#070d1a"/></linearGradient>
+      </defs>
+      <rect width="1600" height="900" fill="url(#opSsSky)"/><rect width="1600" height="900" fill="url(#opSsSun)"/>
+      <circle cx="1160" cy="360" r="118" fill="#fef08a" opacity="0.22"/><circle cx="1160" cy="360" r="82" fill="#f59e0b" opacity="0.26"/>
+      <path d="M0 600Q380 575 760 605T1600 590V900H0Z" fill="url(#opSsSea)"/>
+      <path d="M980 612H1340M1030 638H1290M1070 664H1250" stroke="#fbbf24" stroke-width="4" stroke-linecap="round" opacity="0.28"/>
+      <path d="M0 695Q410 645 830 700T1600 665V900H0Z" fill="#091121" opacity="0.9"/>
+      <path d="M1070 548L1242 548L1218 592H1094Z" fill="#0b101d"/>
+      <path d="M1152 380V548M1118 426V548M1186 436V548" stroke="#1e293b" stroke-width="5"/>
+      <path d="M1114 434Q1152 414 1190 434L1184 510Q1152 496 1120 510Z" fill="#f8fafc" opacity="0.24"/>
+      <path d="M1084 468Q1104 452 1122 468L1118 524Q1104 514 1088 524Z" fill="#fca5a5" opacity="0.22"/>
+      <path d="M1184 472Q1202 456 1222 472L1216 524Q1202 516 1188 524Z" fill="#fde047" opacity="0.2"/>
+      <circle cx="280" cy="170" r="2.5" fill="#fef3c7" opacity="0.7"/><circle cx="520" cy="110" r="2" fill="#bae6fd" opacity="0.65"/><circle cx="840" cy="150" r="2.6" fill="#fef08a" opacity="0.75"/>
+    </svg>`),
+    previewCss: 'linear-gradient(135deg, #0b162c 0%, #5b2333 65%, #d97706 100%)'
+  },
+  {
+    id: 'one-piece-grand-line-map',
+    name: 'Hải Đồ Grand Line (Sáng)',
+    nameEn: 'Grand Line Chart (Light)',
+    embeddedDataUri: wpSvgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="opGlBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f4eacd"/><stop offset="55%" stop-color="#ede0bc"/><stop offset="100%" stop-color="#e3d0a2"/></linearGradient>
+        <radialGradient id="opGlGlow" cx="72%" cy="44%" r="48%"><stop offset="0%" stop-color="#fffbeb" stop-opacity="0.55"/><stop offset="100%" stop-color="#e3d0a2" stop-opacity="0"/></radialGradient>
+      </defs>
+      <rect width="1600" height="900" fill="url(#opGlBg)"/><rect width="1600" height="900" fill="url(#opGlGlow)"/>
+      <g stroke="#8c6d46" stroke-width="1.4" opacity="0.18" fill="none">
+        <path d="M0 240H1600M0 450H1600M0 660H1600M420 0V900M820 0V900M1160 0V900"/>
+        <circle cx="1160" cy="400" r="210"/><circle cx="1160" cy="400" r="145"/>
+      </g>
+      <g transform="translate(1160 400)" opacity="0.22">
+        <path d="M0 -130L22 -22L130 0L22 22L0 130L-22 22L-130 0L-22 -22Z" fill="#1e3a8a"/>
+        <path d="M0 -72L14 -14L72 0L14 14L0 72L-14 14L-72 0L-14 -14Z" fill="#b45309"/>
+      </g>
+      <path d="M360 720C540 580 710 610 880 480C1020 370 1190 360 1370 230" stroke="#7c2d12" stroke-width="4" stroke-dasharray="12 12" fill="none" opacity="0.25" stroke-linecap="round"/>
+      <path d="M1346 206L1394 254M1394 206L1346 254" stroke="#b91c1c" stroke-width="7" stroke-linecap="round" opacity="0.32"/>
+      <path d="M0 780Q460 710 920 790T1600 740V900H0Z" fill="#c7b283" opacity="0.35"/>
+    </svg>`),
+    previewCss: 'linear-gradient(135deg, #f4eacd 0%, #e3d0a2 70%, #d7474b 100%)'
   }
 ];
 

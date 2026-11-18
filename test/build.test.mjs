@@ -158,7 +158,7 @@ test('buildBundle overrides real wpSvgUri entries cleanly and stripDeletedWallpa
     new vm.Script(res.code);
 
     const stripped = stripDeletedWallpapers(res.code, {
-      hiddenWallpapers: ['thunder-samurai', 'obsidian-nebula']
+      hiddenWallpapers: ['thunder-samurai', 'obsidian-nebula', 'one-piece-sunny-sunset', 'one-piece-grand-line-map']
     });
     new vm.Script(stripped);
 
@@ -191,6 +191,8 @@ test('buildBundle overrides real wpSvgUri entries cleanly and stripDeletedWallpa
     const wps = Object.fromEntries(sandbox.__CAPTURED_WPS__.map((w) => [w.id, w.embeddedDataUri]));
     assert.equal(wps['thunder-samurai'], '');
     assert.equal(wps['obsidian-nebula'], '');
+    assert.equal(wps['one-piece-sunny-sunset'], '');
+    assert.equal(wps['one-piece-grand-line-map'], '');
     assert.match(wps['sakura-shrine-night'], /^data:image\/svg\+xml/);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });

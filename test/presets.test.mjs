@@ -112,3 +112,42 @@ test('bubble, input, accent, atmosphere, and theme bundle presets cross-referenc
     }
   }
 });
+
+test('One Piece wallpapers, mascots, and stickers provide valid SVG markup, slug IDs, and globally unique defs IDs', () => {
+  const wpIds = new Set(WALLPAPERS.map((w) => w.id));
+  for (const id of ['one-piece-sunny-sunset', 'one-piece-grand-line-map']) {
+    assert.ok(wpIds.has(id), `Missing wallpaper ${id}`);
+    assert.match(id, /^[a-z0-9-]+$/);
+    assert.match(resolveWallpaperUrl({ enabled: true, wallpaperId: id }), /^data:image\/svg\+xml/);
+  }
+
+  for (const petId of ['chopper-chibi', 'thousand-sunny']) {
+    assert.ok(MASCOT_TEMPLATES[petId], `Missing mascot ${petId}`);
+    const petSvg = renderMascotSvg(petId, 'pet');
+    const bubbleSvg = renderMascotSvg(petId, 'bubble');
+    assert.match(petSvg, /^<svg[^>]*class="agy-ct-svg-art agy-ct-anim-float"/);
+    assert.match(bubbleSvg, /^<svg[^>]*class="agy-ct-svg-art agy-ct-anim-bob"/);
+    assert.match(petSvg, /<\/svg>\s*$/);
+  }
+
+  for (const stId of ['mu-rom', 'jolly-roger', 'log-pose']) {
+    assert.ok(STICKER_TEMPLATES[stId], `Missing sticker ${stId}`);
+    const svg = renderStickerSvg(stId);
+    assert.match(svg, /^<svg[^>]*class="agy-ct-svg-art"[^>]*viewBox="0 0 64 64"/);
+    assert.match(svg, /<\/svg>\s*$/);
+  }
+
+  const seenDefIds = new Set();
+  const svgSources = [
+    ...WALLPAPERS.map((w) => decodeURIComponent(w.embeddedDataUri || '')),
+    ...Object.keys(MASCOT_TEMPLATES).map((id) => renderMascotSvg(id, 'pet')),
+    ...Object.values(STICKER_TEMPLATES).map((s) => s.svg)
+  ];
+  for (const svg of svgSources) {
+    for (const match of svg.matchAll(/\bid="([^"]+)"/g)) {
+      const defId = match[1];
+      assert.ok(!seenDefIds.has(defId), `Duplicate SVG <defs> id="${defId}" found`);
+      seenDefIds.add(defId);
+    }
+  }
+});

@@ -241,6 +241,77 @@ export const MASCOT_TEMPLATES = {
   <circle cx="78" cy="30" r="2.5" fill="#fef08a" class="agy-ct-anim-twinkle"/>
 </svg>`;
     }
+  },
+  'chopper-chibi': {
+    id: 'chopper-chibi',
+    name: 'Chopper Chibi',
+    nameEn: 'Chibi Chopper',
+    accent: '#f472b6',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="opChHat" x1="22" y1="12" x2="74" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f9a8d4"/><stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <linearGradient id="opChBody" x1="30" y1="48" x2="66" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#eab382"/><stop offset="100%" stop-color="#c68652"/>
+    </linearGradient>
+  </defs>
+  <path d="M29 30L18 16M24 23L14 25M26 20L24 11" stroke="#78350f" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M67 30L78 16M72 23L82 25M70 20L72 11" stroke="#78350f" stroke-width="3.4" stroke-linecap="round"/>
+  <ellipse cx="48" cy="68" rx="15" ry="15" fill="url(#opChBody)" stroke="#78350f" stroke-width="1.4"/>
+  <path d="M36 66C36 58 60 58 60 66L58 80H38Z" fill="#ef4444" opacity="0.9"/>
+  <circle cx="48" cy="46" r="16" fill="url(#opChBody)" stroke="#78350f" stroke-width="1.4"/>
+  <path d="M25 38C25 22 35 14 48 14C61 14 71 22 71 38Z" fill="url(#opChHat)" stroke="#be185d" stroke-width="1.4"/>
+  <ellipse cx="48" cy="38" rx="26" ry="5.5" fill="#f472b6" stroke="#be185d" stroke-width="1.4"/>
+  <path d="M45 21H51V31H45ZM43 24H53V28H43Z" fill="#ffffff"/>
+  <g class="agy-ct-anim-blink" style="transform-origin:48px 47px">
+    <circle cx="41" cy="47" r="2.7" fill="#0f172a"/>
+    <circle cx="55" cy="47" r="2.7" fill="#0f172a"/>
+    <circle cx="41.9" cy="46" r="0.9" fill="#ffffff"/>
+    <circle cx="55.9" cy="46" r="0.9" fill="#ffffff"/>
+  </g>
+  <ellipse cx="48" cy="51" rx="3.4" ry="2.4" fill="#2563eb"/>
+  <path d="M44 56Q48 59 52 56" stroke="#78350f" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="77" cy="24" r="3" fill="#fbcfe8" class="agy-ct-anim-twinkle"/>
+</svg>`;
+    }
+  },
+  'thousand-sunny': {
+    id: 'thousand-sunny',
+    name: 'Tàu Thousand Sunny',
+    nameEn: 'Thousand Sunny',
+    accent: '#f5c451',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="opSnHull" x1="18" y1="54" x2="78" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#d97706"/><stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+    <linearGradient id="opSnSail" x1="30" y1="18" x2="66" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#fef3c7"/>
+    </linearGradient>
+  </defs>
+  <g class="agy-ct-anim-wag" style="transform-origin:48px 56px">
+    <line x1="48" y1="14" x2="48" y2="58" stroke="#78350f" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M48 15L66 19L48 24Z" fill="#dc2626"/>
+    <path d="M27 25Q48 18 69 25L65 51Q48 45 31 51Z" fill="url(#opSnSail)" stroke="#cbd5e1" stroke-width="1.3"/>
+    <circle cx="48" cy="37" r="7" fill="#fef08a" stroke="#dc2626" stroke-width="1.6"/>
+  </g>
+  <path d="M20 58H76L68 74C65 78 60 80 54 80H40C32 80 25 74 20 58Z" fill="url(#opSnHull)" stroke="#fbbf24" stroke-width="1.5"/>
+  <rect x="26" y="54" width="44" height="5" rx="2.5" fill="#22c55e"/>
+  <g transform="translate(24 62)">
+    <circle cx="0" cy="0" r="11" fill="#f59e0b" stroke="#fde047" stroke-width="1.4"/>
+    <circle cx="0" cy="0" r="7" fill="#fef3c7"/>
+    <circle cx="-2.4" cy="-1" r="1.3" fill="#0f172a"/><circle cx="2.4" cy="-1" r="1.3" fill="#0f172a"/>
+    <path d="M-2 2.5Q0 4.5 2 2.5" stroke="#92400e" stroke-width="1.3" stroke-linecap="round"/>
+  </g>
+  <path d="M14 82Q31 76 48 82T82 82" stroke="#38bdf8" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="76" cy="30" r="2.8" fill="#fef08a" class="agy-ct-anim-twinkle"/>
+</svg>`;
+    }
   }
 };
 
