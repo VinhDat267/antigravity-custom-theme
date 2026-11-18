@@ -190,3 +190,86 @@ test('saveConfig, resetConfig, and custom media methods emit __agyThemeBridge pa
   assert.equal(afterReset.customSelectors.chatBubble, '.my-bubble');
   assert.equal(afterReset.wallpaperId, 'none');
 });
+
+test('loadCustomMediaMap batches IndexedDB reads into one readonly transaction and releases __AGY_THEME_BOOT__.media heap references safely', async () => {
+  const idbData = new Map([
+    ['wallpaper', 'data:image/webp;base64,OLD_WP'],
+    ['sticker', 'data:image/webp;base64,STALE_STICKER']
+  ]);
+  let readonlyTxCount = 0;
+  let readwriteTxCount = 0;
+
+  const makeMockIdb = () => ({
+    open: () => {
+      const req = {
+        result: {
+          objectStoreNames: { contains: () => true },
+          transaction: (_store, mode) => {
+            if (mode === 'readonly') readonlyTxCount += 1;
+            if (mode === 'readwrite') readwriteTxCount += 1;
+            const tx = {
+              oncomplete: null,
+              onerror: null,
+              objectStore: () => ({
+                get: (k) => {
+                  const r = { result: idbData.get(k), onsuccess: null, onerror: null };
+                  queueMicrotask(() => r.onsuccess?.());
+                  return r;
+                },
+                put: (val, k) => {
+                  idbData.set(k, val);
+                },
+                delete: (k) => {
+                  idbData.delete(k);
+                }
+              })
+            };
+            queueMicrotask(() => tx.oncomplete?.());
+            return tx;
+          },
+          close() {}
+        },
+        onsuccess: null,
+        onerror: null,
+        onupgradeneeded: null
+      };
+      queueMicrotask(() => req.onsuccess?.());
+      return req;
+    }
+  });
+
+  const win = createMockWindow({
+    boot: {
+      config: { ...DEFAULT_CONFIG, wallpaperId: 'custom', __savedAt: 777 },
+      media: {
+        wallpaper: 'data:image/webp;base64,FRESH_DISK_WP',
+        pet: 'data:image/webp;base64,DISK_PET'
+      }
+    }
+  });
+  win.indexedDB = makeMockIdb();
+
+  const map = await loadCustomMediaMap(win);
+  assert.equal(readonlyTxCount, 1, `Expected 1 batched readonly transaction across 6 slots, got ${readonlyTxCount}`);
+  assert.ok(readwriteTxCount <= 1, `Expected <= 1 batched readwrite sync transaction, got ${readwriteTxCount}`);
+  assert.equal(map.wallpaper, 'data:image/webp;base64,FRESH_DISK_WP');
+  assert.equal(map.pet, 'data:image/webp;base64,DISK_PET');
+  assert.equal(map.sticker, undefined, 'Missing disk slot with authoritative host config must be pruned');
+  assert.equal(win.__AGY_THEME_BOOT__.media, null, 'Duplicate boot.media base64 map must be released after loadCustomMediaMap');
+  assert.equal(win.__AGY_THEME_BOOT__.config.__savedAt, 777, 'boot.config metadata must remain intact');
+
+  // Subsequent loadCustomMediaMap call on same window must preserve IndexedDB media without wiping
+  const secondMap = await loadCustomMediaMap(win);
+  assert.equal(secondMap.wallpaper, 'data:image/webp;base64,FRESH_DISK_WP');
+  assert.equal(secondMap.pet, 'data:image/webp;base64,DISK_PET');
+
+  // Frozen __AGY_THEME_BOOT__ must not throw when attempting to release boot.media
+  const frozenWin = createMockWindow({
+    boot: Object.freeze({
+      config: Object.freeze({ ...DEFAULT_CONFIG }),
+      media: Object.freeze({ userAvatar: 'data:image/webp;base64,FROZEN_AV' })
+    })
+  });
+  const frozenMap = await loadCustomMediaMap(frozenWin);
+  assert.equal(frozenMap.userAvatar, 'data:image/webp;base64,FROZEN_AV');
+});

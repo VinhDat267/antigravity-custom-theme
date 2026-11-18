@@ -519,6 +519,8 @@ test('Multi-split perf: buildStylesheet removes universal * selectors, overflow 
   assert.ok(!/(?:^|\n)\.agy-ct-anim-spin\s*\{\s*animation:/m.test(css));
   assert.ok(css.includes('#agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-spin'));
   assert.ok(css.includes('.agy-ct-pet-body'));
+  assert.ok(!css.includes(':has(:focus-visible)'), 'Must use :focus-within instead of redundant :has(:focus-visible)');
+  assert.ok(css.length < 32_500, `Expected rule-compacted CSS < 32500 chars, got ${css.length}`);
 
   const origDoc = globalThis.document;
   const origWin = globalThis.window;
@@ -613,12 +615,52 @@ test('Multi-split perf: buildStylesheet removes universal * selectors, overflow 
     ]);
     assert.equal(rafQueue.length, 0, 'Streaming mutations inside tool-group-collapsible must not schedule rAF');
 
+    for (const highFreqSel of ['.monaco-editor', '[data-side-panel-body="true"]', '[data-mention-menu]', '.agy-overlay']) {
+      observerCb([
+        {
+          type: 'childList',
+          target: { closest: (sel) => (sel.includes(highFreqSel) ? {} : null) },
+          addedNodes: [],
+          removedNodes: []
+        }
+      ]);
+      assert.equal(rafQueue.length, 0, `High-frequency childList mutations inside ${highFreqSel} must not schedule rAF`);
+    }
+
+    // Attribute mutations must still schedule rAF + syncHole even inside high-frequency containers
+    observerCb([
+      {
+        type: 'attributes',
+        target: { closest: (sel) => (sel.includes('.monaco-editor') ? {} : null) },
+        addedNodes: [],
+        removedNodes: []
+      }
+    ]);
+    assert.equal(rafQueue.length, 1, 'Attribute mutations must always schedule rAF for hole/split sync');
+    rafQueue.shift();
+
+    let shellPropWrites = 0;
+    shellEl.style.setProperty = () => {
+      shellPropWrites += 1;
+    };
+    engine.destroy();
+    engine.mount();
+    const writesAfterFirstMount = shellPropWrites;
+    assert.ok(writesAfterFirstMount >= 2, 'Initial mount must write --agy-sidebar-w and --agy-hdr-h');
+
+    engine.syncShellAndHoleMetrics(DEFAULT_CONFIG);
+    assert.equal(shellPropWrites, writesAfterFirstMount, 'Unchanged shell/sidebar/topbar geometry must not rewrite CSS variables');
+
     hasSplit = true;
     tilingPanes = [{}, {}, {}];
     engine.syncShellAndHoleMetrics(DEFAULT_CONFIG);
     assert.equal(bodyEl.attributes['data-agy-split-active'], '1');
     assert.deepEqual(splitEvents, [3]);
 
+    engine.destroy();
+    shellPropWrites = 0;
+    engine.mount();
+    assert.ok(shellPropWrites >= 2, 'destroy() must reset memoized shell geometry so remount writes CSS variables');
     engine.destroy();
   } finally {
     globalThis.document = origDoc;

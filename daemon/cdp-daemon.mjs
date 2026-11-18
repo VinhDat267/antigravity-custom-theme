@@ -6,7 +6,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-import { buildBundle, stripDeletedWallpapers } from '../scripts/build.mjs';
+import { buildBundle, stripDeletedWallpapers, stripHiddenAssets } from '../scripts/build.mjs';
 import { sanitizeImportedConfig } from '../src/core/config-store.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -456,7 +456,7 @@ export function prepareBundleSource({ rootDir = DEFAULT_ROOT_DIR, userDataDir } 
 
   const rawBundle = fs.readFileSync(bundlePath, 'utf8');
   const boot = loadBootPayload(resolvedUserDir);
-  const strippedBundle = stripDeletedWallpapers(rawBundle, boot.config);
+  const strippedBundle = stripHiddenAssets(rawBundle, boot.config);
   const bootPrefix = `window.__AGY_THEME_BOOT__ = ${JSON.stringify(boot)};\n`;
   const value = {
     bundlePath,
@@ -688,6 +688,7 @@ export async function runOneShotCommand({
 
 export function isNodeProcessAlive(pid) {
   if (!Number.isInteger(pid) || pid <= 0) return false;
+  if (pid === process.pid) return true;
   try {
     process.kill(pid, 0);
   } catch {
@@ -744,6 +745,24 @@ export function getDaemonStatus({ rootDir = DEFAULT_ROOT_DIR, userDataDir, portF
   };
 }
 
+export function capDaemonLogFile(logPath, maxBytes = 262_144) {
+  if (!logPath || !Number.isFinite(maxBytes) || maxBytes < 64) return;
+  try {
+    const st = fs.statSync(logPath);
+    if (st.size <= maxBytes) return;
+    const buf = fs.readFileSync(logPath);
+    const sliceStart = Math.max(0, buf.length - maxBytes);
+    let tail = buf.subarray(sliceStart).toString('utf8');
+    const nl = tail.indexOf('\n');
+    if (nl !== -1 && nl + 1 < tail.length) {
+      tail = tail.slice(nl + 1);
+    }
+    atomicWriteFile(logPath, tail);
+  } catch {
+    // Ignore missing or locked log file
+  }
+}
+
 export async function runDaemon({
   rootDir = DEFAULT_ROOT_DIR,
   userDataDir,
@@ -762,6 +781,7 @@ export async function runDaemon({
   atomicWriteFile(pidPath, String(process.pid));
 
   const logPath = path.join(resolvedUserDir, 'daemon.log');
+  capDaemonLogFile(logPath);
   const writeLog = (line) => {
     try {
       fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${line}\n`, 'utf8');

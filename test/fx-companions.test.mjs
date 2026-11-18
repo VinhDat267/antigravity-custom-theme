@@ -229,6 +229,65 @@ test('AmbientCanvasEngine draws fireflies and stardust without ctx.shadowBlur an
   engine.destroy();
 });
 
+test('AmbientCanvasEngine batches snow into <= 2 fill passes and draws sakura without per-petal fillStyle parsing', () => {
+  let fillCalls = 0;
+  let moveToCalls = 0;
+  let fillStyleSets = 0;
+  let lastFillStyle = '';
+  const mockDoc = { hidden: false, addEventListener: () => {}, removeEventListener: () => {} };
+  const mockWin = {
+    innerWidth: 1400,
+    innerHeight: 800,
+    devicePixelRatio: 1,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    requestAnimationFrame: () => 1,
+    cancelAnimationFrame: () => {}
+  };
+  const ctx = {
+    globalAlpha: 1,
+    setTransform: () => {},
+    clearRect: () => {},
+    beginPath: () => {},
+    moveTo: () => {
+      moveToCalls += 1;
+    },
+    lineTo: () => {},
+    stroke: () => {},
+    fill: () => {
+      fillCalls += 1;
+    },
+    arc: () => {},
+    ellipse: () => {}
+  };
+  Object.defineProperty(ctx, 'fillStyle', {
+    get: () => lastFillStyle,
+    set: (v) => {
+      fillStyleSets += 1;
+      lastFillStyle = v;
+    }
+  });
+  const canvas = { width: 0, height: 0, style: { clipPath: 'none' }, getContext: () => ctx };
+  const engine = new AmbientCanvasEngine(canvas, { envWindow: mockWin, envDocument: mockDoc });
+
+  engine.configure('snow', 90);
+  const snowCount = engine.particles.length;
+  assert.ok(snowCount >= 40);
+  engine.drawFrame(16);
+  assert.ok(fillCalls <= 2, `Expected batched snow to use <= 2 fill() calls, got ${fillCalls}`);
+  assert.equal(moveToCalls, snowCount, 'Each batched snow arc must moveTo(x + r, y) to avoid connecting lines');
+  assert.equal(ctx.globalAlpha, 1);
+
+  fillStyleSets = 0;
+  engine.configure('sakura', 85);
+  assert.ok(engine.particles.length >= 25);
+  engine.drawFrame(32);
+  assert.equal(fillStyleSets, 1, `Expected 1 fillStyle assignment per sakura frame, got ${fillStyleSets}`);
+  assert.equal(lastFillStyle, '#f9a8d4');
+  assert.equal(ctx.globalAlpha, 1);
+  engine.destroy();
+});
+
 test('AmbientCanvasEngine throttles frame interval when window blurs and restores 60fps on focus', () => {
   const winListeners = new Map();
   const mockDoc = {

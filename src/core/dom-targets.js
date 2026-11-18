@@ -117,16 +117,15 @@ export function dtFindChatBubbles(config) {
 
   const raw = Array.from(found);
   if (raw.length <= 1) return raw;
-  const allAncestors = new Set();
-  for (const el of raw) {
-    let p = el.parentElement;
+  for (let i = tightMatches.length; i < raw.length; i += 1) {
+    let p = raw[i].parentElement;
     while (p) {
-      allAncestors.add(p);
+      tightAncestors.add(p);
       p = p.parentElement;
     }
   }
-  if (allAncestors.size > 0) {
-    return raw.filter((el) => !allAncestors.has(el));
+  if (tightAncestors.size > 0) {
+    return raw.filter((el) => !tightAncestors.has(el));
   }
   return raw.filter((el) => !raw.some((other) => other !== el && el.contains(other)));
 }

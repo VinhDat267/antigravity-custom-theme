@@ -3,7 +3,11 @@
  */
 
 function wpSvgUri(svgMarkup) {
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgMarkup)}`;
+  const compact = String(svgMarkup || '')
+    .replace(/>\s+</g, '><')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(compact)}`;
 }
 
 export const WALLPAPERS = [

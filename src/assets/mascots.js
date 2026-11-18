@@ -452,5 +452,6 @@ export function renderAgentStarSvg(primaryHex = '#60a5fa', secondaryHex = '#f5c4
   <rect width="64" height="64" rx="32" fill="url(#bg)"/>
   <path d="M32 10L37.5 26.5L54 32L37.5 37.5L32 54L26.5 37.5L10 32L26.5 26.5Z" fill="url(#star)"/>
 </svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  const compactSvg = svg.replace(/>\s+</g, '><').replace(/\s{2,}/g, ' ').trim();
+  return `data:image/svg+xml,${encodeURIComponent(compactSvg)}`;
 }

@@ -24,12 +24,117 @@ import {
 const SE_STYLE_ID = 'agy-ct-styles';
 
 function minifyCssBlock(css) {
-  return String(css || '')
-    .replace(/\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\//g, '')
-    .replace(/^[ \t]+|[ \t]+$/gm, '')
-    .replace(/\n{2,}/g, '\n')
+  const strings = [];
+  const masked = String(css || '')
+    .replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, (m) => {
+      const idx = strings.push(m) - 1;
+      return `\x01S${idx}\x02`;
+    })
+    .replace(/\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\//g, '');
+
+  const compacted = masked
+    .replace(/\s+/g, ' ')
+    .replace(/\s*\{\s*/g, '{')
+    .replace(/\s*;+\s*/g, ';')
+    .replace(/\s*\}\s*/g, '}\n')
+    .replace(/;\}/g, '}')
+    .replace(/\(\s+/g, '(')
+    .replace(/\s+\)/g, ')')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
     .trim();
+
+  return compacted.replace(/\x01S(\d+)\x02/g, (_m, i) => strings[Number(i)]);
 }
+
+const SE_STATIC_CSS = minifyCssBlock(`
+  .agy-ct-svg-art { width: 100%; height: 100%; display: block; overflow: visible; }
+  @keyframes agyCtBob { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-2.5px); } }
+  @keyframes agyCtFloat { 0%, 100% { transform: translateY(0px) rotate(-1deg); } 50% { transform: translateY(-6px) rotate(1.5deg); } }
+  @keyframes agyCtBlink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+  @keyframes agyCtWag { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(6deg); } }
+  @keyframes agyCtTwinkle { 0%, 100% { opacity: 0.45; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.12); } }
+  @keyframes agyCtSpark { 0%, 100% { opacity: 0.6; } 45% { opacity: 1; } 52% { opacity: 0.35; } 60% { opacity: 1; } }
+  @keyframes agyCtSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes agyCtBurstUp {
+    0% { opacity: 1; transform: translate(0, 0) scale(0.7); }
+    100% { opacity: 0; transform: translate(var(--dx, 0px), var(--dy, -36px)) scale(1.2); }
+  }
+  .agy-ct-bubble-styled:hover > .agy-ct-bubble-mascot { animation: agyCtBob 2.2s ease-in-out infinite; will-change: transform; }
+  #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-blink { animation: agyCtBlink 2.4s ease-in-out infinite; }
+  #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-wag { animation: agyCtWag 1.6s ease-in-out infinite; }
+  #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-twinkle { animation: agyCtTwinkle 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-spark { animation: agyCtSpark 1.4s linear infinite; }
+  #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-spin { animation: agyCtSpin 10s linear infinite; }
+  #agy-ct-pet-stage {
+    position: fixed; left: 0; top: 0; z-index: 45;
+    pointer-events: none; user-select: none; touch-action: none;
+    will-change: transform; contain: layout style;
+  }
+  .agy-ct-pet-body { width: 100%; height: 100%; pointer-events: none; animation: agyCtFloat 4.2s ease-in-out infinite; will-change: transform; transition: scale 0.16s ease; }
+  .agy-ct-pet-body > img { pointer-events: auto; touch-action: none; cursor: grab; -webkit-user-drag: none; user-select: none; }
+  .agy-ct-pet-body > img:active { cursor: grabbing; }
+  #agy-ct-pet-stage .agy-ct-svg-art { pointer-events: none; }
+  #agy-ct-pet-stage .agy-ct-svg-art :is(path, rect, circle, ellipse, polygon, polyline, line) { pointer-events: visiblePainted; cursor: grab; }
+  #agy-ct-pet-stage .agy-ct-svg-art :is(path, rect, circle, ellipse, polygon, polyline, line):active { cursor: grabbing; }
+  #agy-ct-pet-stage:hover .agy-ct-pet-body { scale: 1.06; }
+  .agy-ct-pet-speech.is-align-right { left: auto; right: 0; --speech-tx: 0%; }
+  .agy-ct-pet-speech.is-align-left { left: 0; right: auto; --speech-tx: 0%; }
+  .agy-ct-pet-speech.is-below { bottom: auto; top: calc(100% + 8px); transform: translate(var(--speech-tx, -50%), -4px); }
+  .agy-ct-pet-speech.is-visible { opacity: 1; transform: translate(var(--speech-tx, -50%), 0); }
+  .agy-ct-pet-speech.is-below.is-visible { transform: translate(var(--speech-tx, -50%), 0); }
+  .agy-ct-pet-burst { position: fixed; pointer-events: none; z-index: 960; font-size: 14px; animation: agyCtBurstUp 0.9s ease-out forwards; }
+  .agy-ct-sticker-node {
+    position: fixed; left: 0; top: 0; z-index: 40;
+    cursor: grab; user-select: none; touch-action: none;
+    will-change: transform; contain: layout style;
+  }
+  .agy-ct-sticker-node.has-glow::before {
+    content: ""; position: absolute; inset: -20%; border-radius: 9999px;
+    background: radial-gradient(circle, color-mix(in srgb, var(--agy-ct-accent) 24%, rgba(255, 255, 255, 0.22)) 0%, transparent 70%);
+    pointer-events: none; z-index: -1;
+  }
+  html.agy-ct-idle-paused :is([class*="agy-ct-anim-"], .agy-ct-pet-body) { animation-play-state: paused !important; }
+  .agy-ct-hidden-native { display: none !important; }
+  .agy-ct-nav-item.is-active { background: rgba(255, 255, 255, 0.1) !important; color: #ffffff !important; }
+  .agy-ct-picker-hover { outline: 2px dashed #facc15 !important; outline-offset: 2px !important; cursor: crosshair !important; }
+  #agy-ct-picker-banner {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 99999; background: #18181b; color: #fef08a; border: 1px solid #facc15;
+    border-radius: 8px; padding: 8px 14px; font-size: 12.5px; display: flex; align-items: center; gap: 10px;
+  }
+  #agy-ct-settings-panel {
+    display: none; flex-direction: column; gap: 16px;
+    padding: 18px 22px 28px; color: #e4e4e7;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+    box-sizing: border-box; width: 100%; max-width: 820px;
+  }
+  #agy-ct-settings-panel.is-open { display: flex; }
+  #agy-ct-settings-panel :is(div, button, input, select, textarea, label, span, h2, h3, p) { box-sizing: border-box; }
+  .agy-ct-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+  .agy-ct-head h2 { margin: 0; font-size: 16px; font-weight: 600; color: #ffffff; }
+  .agy-ct-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+  .agy-ct-tab { background: transparent; color: #a1a1aa; border: 1px solid transparent; border-radius: 8px; padding: 6px 11px; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+  .agy-ct-tab:hover { color: #f4f4f5; background: rgba(255, 255, 255, 0.05); }
+  .agy-ct-tab.is-active { background: rgba(255, 255, 255, 0.1); color: #ffffff; border-color: rgba(255, 255, 255, 0.14); }
+  .agy-ct-card { background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .agy-ct-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .agy-ct-grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .agy-ct-grid-sm { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+  .agy-ct-item-card { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 8px; background: #14161e; border: 1px solid rgba(255, 255, 255, 0.1); color: #e4e4e7; text-align: left; cursor: pointer; }
+  .agy-ct-item-card:hover { border-color: rgba(255, 255, 255, 0.25); }
+  .agy-ct-item-card.is-selected { border-color: var(--agy-ct-accent); background: #1a1d28; }
+  .agy-ct-btn { background: #1b1e28; color: #e4e4e7; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px; padding: 6px 11px; font-size: 12px; font-weight: 500; cursor: pointer; }
+  .agy-ct-btn:hover { border-color: rgba(255, 255, 255, 0.28); }
+  .agy-ct-btn-danger { background: rgba(185, 28, 28, 0.8); border-color: rgba(248, 113, 113, 0.45); color: #fff; }
+  .agy-ct-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .agy-ct-slider-row { display: grid; grid-template-columns: 1fr 150px 44px; align-items: center; gap: 10px; font-size: 12.5px; }
+  .agy-ct-range-val { text-align: right; font-variant-numeric: tabular-nums; color: #d4d4d8; font-size: 12px; }
+  .agy-ct-swatch { width: 22px; height: 22px; border-radius: 999px; border: 2px solid transparent; cursor: pointer; }
+  .agy-ct-swatch.is-selected { border-color: #ffffff; }
+  .agy-ct-textarea, .agy-ct-select, .agy-ct-input { width: 100%; background: #0e1017; color: #f4f4f5; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px; padding: 7px 10px; font-size: 12px; }
+  .agy-ct-textarea { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; min-height: 96px; resize: vertical; }
+`);
 
 function seSafeCssUrl(url) {
   return String(url || '')
@@ -216,7 +321,7 @@ export function buildStylesheet(config, customMedia = {}) {
 
   const customUserCss = sanitizeCssText(cfg.customCss || '');
 
-  return minifyCssBlock(`
+  const dynamicCss = minifyCssBlock(`
     :root {
       --agy-ct-accent: ${accent};
       --agy-ct-secondary: ${secondary};
@@ -385,8 +490,6 @@ export function buildStylesheet(config, customMedia = {}) {
       .agy-shell [data-side-panel-body="true"],
       .agy-shell .bg-background:not(.settings-modal-container) {
         background: transparent !important;
-        background-color: transparent !important;
-        background-image: none !important;
       }
       .agy-shell .settings-modal-container .bg-background {
         background-color: #18181b !important;
@@ -446,8 +549,6 @@ export function buildStylesheet(config, customMedia = {}) {
       .agy-shell [data-testid="right-cluster-fade"],
       .agy-shell [class*="bg-[var(--shell-canvas)]"] {
         background: transparent !important;
-        background-color: transparent !important;
-        background-image: none !important;
       }
       .agy-shell .agy-sidebar-row[data-selected="true"],
       .agy-shell .agy-sidebar-row.bg-sidebar-secondary,
@@ -457,8 +558,6 @@ export function buildStylesheet(config, customMedia = {}) {
       html.agy-ct-active body.agy-ct-active .agy-shell :is(.agy-sidebar-row, [data-testid="conversation-row-history"]) .agy-row-actions,
       .agy-shell .agy-row-actions {
         background: transparent !important;
-        background-color: transparent !important;
-        background-image: none !important;
         border: none !important;
         box-shadow: none !important;
         padding-left: 4px !important;
@@ -470,7 +569,7 @@ export function buildStylesheet(config, customMedia = {}) {
         display: none !important;
         background: none !important;
       }
-      .agy-shell :is(.agy-sidebar-row, [data-testid="conversation-row-history"]):is(:hover, :focus-within, :has(:focus-visible)) .truncate:first-child {
+      .agy-shell :is(.agy-sidebar-row, [data-testid="conversation-row-history"]):is(:hover, :focus-within) .truncate:first-child {
         -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 78px), transparent calc(100% - 50px));
         mask-image: linear-gradient(to right, #000 calc(100% - 78px), transparent calc(100% - 50px));
       }
@@ -487,8 +586,6 @@ export function buildStylesheet(config, customMedia = {}) {
       html.agy-ct-active body[data-has-browser-hole="true"].agy-ct-active [data-split-panes] .agy-sheet[data-sheet-inset] :is([data-tiling-pane], [data-tiling-pane] > [data-pane-id]):not([data-has-browser-hole="true"]),
       html.agy-ct-active body[data-has-browser-hole="true"].agy-ct-active [data-split-panes] .agy-sheet[data-sheet-inset] [data-tiling-pane] > [data-pane-id] > :first-child {
         background: transparent !important;
-        background-color: transparent !important;
-        background-image: none !important;
       }
       html.agy-ct-active body.agy-ct-active [data-split-panes] .agy-sheet[data-sheet-inset] [data-tiling-pane]::after {
         box-shadow: none !important;
@@ -679,14 +776,19 @@ export function buildStylesheet(config, customMedia = {}) {
         color: ${uiInk} !important;
       }
 
-      /* Portaled Model Selector & Floating .agy-overlay / Slash Mention Menus (Zero Live Blur) */
+      /* Portaled Model Selector, Slash Mention Menus & Overview Panel Cards (Zero Live Blur) */
       html.agy-ct-active body.agy-ct-active :is(
         .agy-overlay,
         .agy-overlay.surface-glass,
         .agy-fastpick.surface-glass,
         .quick-input-widget.surface-glass,
         [data-mention-menu],
-        [role="listbox"].bg-card
+        [role="listbox"].bg-card,
+        .animate-overview-panel,
+        [data-testid="overview-panel-host-overlay"],
+        [data-testid="overview-panel-host-gutter"],
+        [data-testid="overview-panel-host-sibling"],
+        [data-base-ui-portal] div:has(> [data-testid="battle-overview-dropdown"])
       ) {
         background: ${
           isLight
@@ -702,6 +804,14 @@ export function buildStylesheet(config, customMedia = {}) {
           0 0 24px color-mix(in srgb, ${accent} 14%, transparent) !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
+      }
+      html.agy-ct-active body.agy-ct-active :is(
+        .animate-overview-panel,
+        [data-testid="overview-panel-host-overlay"],
+        [data-testid="overview-panel-host-gutter"],
+        [data-testid="overview-panel-host-sibling"]
+      ) {
+        contain: style;
       }
       body.agy-ct-active .agy-overlay [data-testid="model-selector-header"] {
         color: color-mix(in srgb, ${accent} 70%, ${uiMuted}) !important;
@@ -764,30 +874,7 @@ export function buildStylesheet(config, customMedia = {}) {
         border-radius: 8px !important;
       }
 
-      /* Right-Side Overview Panel Card & Inner Rows (Zero Live Blur) */
-      html.agy-ct-active body.agy-ct-active :is(
-        .animate-overview-panel,
-        [data-testid="overview-panel-host-overlay"],
-        [data-testid="overview-panel-host-gutter"],
-        [data-testid="overview-panel-host-sibling"],
-        [data-base-ui-portal] div:has(> [data-testid="battle-overview-dropdown"])
-      ) {
-        background: ${
-          isLight
-            ? `linear-gradient(160deg, color-mix(in srgb, ${accent} 8%, rgba(255, 255, 255, 0.97)) 0%, rgba(${overlayRgb}, 0.98) 100%)`
-            : `linear-gradient(160deg, color-mix(in srgb, ${accent} 11%, rgba(${overlayRgb}, 0.96)) 0%, rgba(${overlayRgb}, 0.985) 100%)`
-        } !important;
-        color: ${uiInk} !important;
-        border: 1px solid color-mix(in srgb, ${accent} 34%, ${isLight ? 'rgba(15, 23, 42, 0.14)' : 'rgba(255, 255, 255, 0.14)'}) !important;
-        border-radius: 12px !important;
-        box-shadow:
-          inset 0 1px 0 ${isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(255, 255, 255, 0.1)'},
-          0 18px 42px -10px rgba(0, 0, 0, ${isLight ? '0.18' : '0.72'}),
-          0 0 24px color-mix(in srgb, ${accent} 14%, transparent) !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        contain: style;
-      }
+      /* Right-Side Overview Panel Inner Rows */
       body.agy-ct-active [data-testid="overview-panel"] :is(.border-border, .divide-border > :not([hidden]) ~ :not([hidden])) {
         border-color: color-mix(in srgb, ${accent} 22%, ${isLight ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.08)'}) !important;
       }
@@ -829,12 +916,12 @@ export function buildStylesheet(config, customMedia = {}) {
         color: color-mix(in srgb, ${accent} 36%, ${uiMuted}) !important;
         transition: color 120ms ease !important;
       }
-      body.agy-ct-active [data-testid="overview-panel"] :is(.agy-hover-row, [data-testid^="overview-panel-row-"]):is(:hover, :focus-visible, :has(:focus-visible), [data-popup-open], [aria-expanded="true"]) {
+      body.agy-ct-active [data-testid="overview-panel"] :is(.agy-hover-row, [data-testid^="overview-panel-row-"]):is(:hover, :focus-visible, :focus-within, [data-popup-open], [aria-expanded="true"]) {
         background: color-mix(in srgb, ${accent} 18%, ${isLight ? 'rgba(15, 23, 42, 0.05)' : 'rgba(255, 255, 255, 0.06)'}) !important;
         color: ${uiInk} !important;
         box-shadow: inset 0 0 0 1px color-mix(in srgb, ${accent} 28%, transparent) !important;
       }
-      body.agy-ct-active [data-testid="overview-panel"] :is(.agy-hover-row, [data-testid^="overview-panel-row-"]):is(:hover, :focus-visible, :has(:focus-visible), [data-popup-open], [aria-expanded="true"]) :is(svg, .google-symbols, .material-symbols-outlined) {
+      body.agy-ct-active [data-testid="overview-panel"] :is(.agy-hover-row, [data-testid^="overview-panel-row-"]):is(:hover, :focus-visible, :focus-within, [data-popup-open], [aria-expanded="true"]) :is(svg, .google-symbols, .material-symbols-outlined) {
         color: ${accent} !important;
       }
       body.agy-ct-active [data-testid="overview-panel"] :is(.agy-hover-row, [data-testid^="overview-panel-row-"]).bg-secondary {
@@ -918,41 +1005,6 @@ export function buildStylesheet(config, customMedia = {}) {
 
     ${avatarCss}
 
-    /* SVG Character Animations (GPU-composited container + interactive SVG children) */
-    .agy-ct-svg-art { width: 100%; height: 100%; display: block; overflow: visible; }
-    @keyframes agyCtBob { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-2.5px); } }
-    @keyframes agyCtFloat { 0%, 100% { transform: translateY(0px) rotate(-1deg); } 50% { transform: translateY(-6px) rotate(1.5deg); } }
-    @keyframes agyCtBlink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
-    @keyframes agyCtWag { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(6deg); } }
-    @keyframes agyCtTwinkle { 0%, 100% { opacity: 0.45; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.12); } }
-    @keyframes agyCtSpark { 0%, 100% { opacity: 0.6; } 45% { opacity: 1; } 52% { opacity: 0.35; } 60% { opacity: 1; } }
-    @keyframes agyCtSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .agy-ct-bubble-styled:hover > .agy-ct-bubble-mascot { animation: agyCtBob 2.2s ease-in-out infinite; will-change: transform; }
-    #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-blink { animation: agyCtBlink 2.4s ease-in-out infinite; }
-    #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-wag { animation: agyCtWag 1.6s ease-in-out infinite; }
-    #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-twinkle { animation: agyCtTwinkle 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-    #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-spark { animation: agyCtSpark 1.4s linear infinite; }
-    #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-spin { animation: agyCtSpin 10s linear infinite; }
-
-    /* Pet & Sticker Layers */
-    #agy-ct-pet-stage {
-      position: fixed;
-      left: 0;
-      top: 0;
-      z-index: 45;
-      pointer-events: none;
-      user-select: none;
-      touch-action: none;
-      will-change: transform;
-      contain: layout style;
-    }
-    .agy-ct-pet-body { width: 100%; height: 100%; pointer-events: none; animation: agyCtFloat 4.2s ease-in-out infinite; will-change: transform; transition: scale 0.16s ease; }
-    .agy-ct-pet-body > img { pointer-events: auto; touch-action: none; cursor: grab; -webkit-user-drag: none; user-select: none; }
-    .agy-ct-pet-body > img:active { cursor: grabbing; }
-    #agy-ct-pet-stage .agy-ct-svg-art { pointer-events: none; }
-    #agy-ct-pet-stage .agy-ct-svg-art :is(path, rect, circle, ellipse, polygon, polyline, line) { pointer-events: visiblePainted; cursor: grab; }
-    #agy-ct-pet-stage .agy-ct-svg-art :is(path, rect, circle, ellipse, polygon, polyline, line):active { cursor: grabbing; }
-    #agy-ct-pet-stage:hover .agy-ct-pet-body { scale: 1.06; }
     .agy-ct-pet-speech {
       position: absolute;
       bottom: calc(100% + 8px);
@@ -971,59 +1023,6 @@ export function buildStylesheet(config, customMedia = {}) {
       transition: opacity 0.2s ease, transform 0.2s ease;
       ${isLight ? 'box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14);' : ''}
     }
-    .agy-ct-pet-speech.is-align-right {
-      left: auto;
-      right: 0;
-      --speech-tx: 0%;
-    }
-    .agy-ct-pet-speech.is-align-left {
-      left: 0;
-      right: auto;
-      --speech-tx: 0%;
-    }
-    .agy-ct-pet-speech.is-below {
-      bottom: auto;
-      top: calc(100% + 8px);
-      transform: translate(var(--speech-tx, -50%), -4px);
-    }
-    .agy-ct-pet-speech.is-visible { opacity: 1; transform: translate(var(--speech-tx, -50%), 0); }
-    .agy-ct-pet-speech.is-below.is-visible { transform: translate(var(--speech-tx, -50%), 0); }
-    .agy-ct-pet-burst {
-      position: fixed;
-      pointer-events: none;
-      z-index: 960;
-      font-size: 14px;
-      animation: agyCtBurstUp 0.9s ease-out forwards;
-    }
-    @keyframes agyCtBurstUp {
-      0% { opacity: 1; transform: translate(0, 0) scale(0.7); }
-      100% { opacity: 0; transform: translate(var(--dx, 0px), var(--dy, -36px)) scale(1.2); }
-    }
-    .agy-ct-sticker-node {
-      position: fixed;
-      left: 0;
-      top: 0;
-      z-index: 40;
-      cursor: grab;
-      user-select: none;
-      touch-action: none;
-      will-change: transform;
-      contain: layout style;
-    }
-    .agy-ct-sticker-node.has-glow::before {
-      content: "";
-      position: absolute;
-      inset: -20%;
-      border-radius: 9999px;
-      background: radial-gradient(circle, color-mix(in srgb, var(--agy-ct-accent) 24%, rgba(255, 255, 255, 0.22)) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: -1;
-    }
-    html.agy-ct-idle-paused :is([class*="agy-ct-anim-"], .agy-ct-pet-body) {
-      animation-play-state: paused !important;
-    }
-
-    /* Studio Panel & Launcher (flat hairline design) */
     #agy-ct-launcher {
       position: fixed;
       ${launcherPosCss}
@@ -1051,51 +1050,10 @@ export function buildStylesheet(config, customMedia = {}) {
     `
         : ''
     }
-
-    .agy-ct-hidden-native { display: none !important; }
-    .agy-ct-nav-item.is-active { background: rgba(255, 255, 255, 0.1) !important; color: #ffffff !important; }
-    .agy-ct-picker-hover { outline: 2px dashed #facc15 !important; outline-offset: 2px !important; cursor: crosshair !important; }
-    #agy-ct-picker-banner {
-      position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
-      z-index: 99999; background: #18181b; color: #fef08a; border: 1px solid #facc15;
-      border-radius: 8px; padding: 8px 14px; font-size: 12.5px; display: flex; align-items: center; gap: 10px;
-    }
-
-    #agy-ct-settings-panel {
-      display: none; flex-direction: column; gap: 16px;
-      padding: 18px 22px 28px; color: #e4e4e7;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
-      box-sizing: border-box; width: 100%; max-width: 820px;
-    }
-    #agy-ct-settings-panel.is-open { display: flex; }
-    #agy-ct-settings-panel :is(div, button, input, select, textarea, label, span, h2, h3, p) { box-sizing: border-box; }
-    .agy-ct-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-    .agy-ct-head h2 { margin: 0; font-size: 16px; font-weight: 600; color: #ffffff; }
-    .agy-ct-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
-    .agy-ct-tab { background: transparent; color: #a1a1aa; border: 1px solid transparent; border-radius: 8px; padding: 6px 11px; font-size: 12.5px; font-weight: 500; cursor: pointer; }
-    .agy-ct-tab:hover { color: #f4f4f5; background: rgba(255, 255, 255, 0.05); }
-    .agy-ct-tab.is-active { background: rgba(255, 255, 255, 0.1); color: #ffffff; border-color: rgba(255, 255, 255, 0.14); }
-    .agy-ct-card { background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-    .agy-ct-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .agy-ct-grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-    .agy-ct-grid-sm { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
-    .agy-ct-item-card { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 8px; background: #14161e; border: 1px solid rgba(255, 255, 255, 0.1); color: #e4e4e7; text-align: left; cursor: pointer; }
-    .agy-ct-item-card:hover { border-color: rgba(255, 255, 255, 0.25); }
-    .agy-ct-item-card.is-selected { border-color: var(--agy-ct-accent); background: #1a1d28; }
-    .agy-ct-btn { background: #1b1e28; color: #e4e4e7; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px; padding: 6px 11px; font-size: 12px; font-weight: 500; cursor: pointer; }
-    .agy-ct-btn:hover { border-color: rgba(255, 255, 255, 0.28); }
-    .agy-ct-btn-danger { background: rgba(185, 28, 28, 0.8); border-color: rgba(248, 113, 113, 0.45); color: #fff; }
-    .agy-ct-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    .agy-ct-slider-row { display: grid; grid-template-columns: 1fr 150px 44px; align-items: center; gap: 10px; font-size: 12.5px; }
-    .agy-ct-range-val { text-align: right; font-variant-numeric: tabular-nums; color: #d4d4d8; font-size: 12px; }
-    .agy-ct-swatch { width: 22px; height: 22px; border-radius: 999px; border: 2px solid transparent; cursor: pointer; }
-    .agy-ct-swatch.is-selected { border-color: #ffffff; }
-    .agy-ct-textarea, .agy-ct-select, .agy-ct-input { width: 100%; background: #0e1017; color: #f4f4f5; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px; padding: 7px 10px; font-size: 12px; }
-    .agy-ct-textarea { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; min-height: 96px; resize: vertical; }
-
-    /* Custom User CSS Override */
-    ${customUserCss}
   `);
+
+  const fullCss = `${dynamicCss}\n${SE_STATIC_CSS}`;
+  return customUserCss ? `${fullCss}\n${customUserCss.trim()}` : fullCss;
 }
 
 export class SurfaceEngine {
@@ -1132,6 +1090,11 @@ export class SurfaceEngine {
     this.boundNativeItems = new WeakSet();
     this.pickerCleanup = null;
     this.lastSplitCount = 1;
+    this.lastShellEl = null;
+    this.lastSidebarW = -1;
+    this.lastHdrH = -1;
+    this.lastHoleAppliedKey = '';
+    this.lastSplitActive = null;
     this.holeState = { active: false, clipPath: 'none', holeRect: null };
   }
 
@@ -1159,7 +1122,7 @@ export class SurfaceEngine {
             r.type === 'childList' &&
             Boolean(
               r.target?.closest?.(
-                '[data-testid="agent-response"], [data-testid="tool-group-collapsible"], [data-testid="worked-for-collapsible"], [data-testid="overview-panel"], .xterm'
+                '[data-testid="agent-response"], [data-testid="tool-group-collapsible"], [data-testid="worked-for-collapsible"], [data-testid="overview-panel"], [data-side-panel-body="true"], [data-mention-menu], .agy-overlay, .monaco-editor, .xterm'
               )
             )
         );
@@ -1291,16 +1254,29 @@ export class SurfaceEngine {
   syncShellAndHoleMetrics(config) {
     const shell = dtFindShellElement(config);
     if (!shell) return;
+    const shellSwapped = shell !== this.lastShellEl;
+    if (shellSwapped) {
+      this.lastShellEl = shell;
+      this.lastSidebarW = -1;
+      this.lastHdrH = -1;
+      this.lastHoleAppliedKey = '';
+    }
 
     const split = shell.querySelector('[data-testid="sidebar-split"]');
     const sidebar = split ? split.firstElementChild : shell.querySelector('aside, [data-sidebar="true"], .bg-sidebar');
     const titleBar = shell.querySelector('[class*="@container/titlebar"], [data-agy-topbar]');
     const shellRect = shell.getBoundingClientRect();
     const sw = sidebar ? Math.round(sidebar.getBoundingClientRect().width) : 0;
-    const hdrH = titleBar ? Math.round(titleBar.getBoundingClientRect().bottom - shellRect.top) : 44;
+    const hdrH = Math.max(0, titleBar ? Math.round(titleBar.getBoundingClientRect().bottom - shellRect.top) : 44);
 
-    shell.style.setProperty('--agy-sidebar-w', `${sw}px`);
-    shell.style.setProperty('--agy-hdr-h', `${Math.max(0, hdrH)}px`);
+    if (sw !== this.lastSidebarW) {
+      this.lastSidebarW = sw;
+      shell.style.setProperty('--agy-sidebar-w', `${sw}px`);
+    }
+    if (hdrH !== this.lastHdrH) {
+      this.lastHdrH = hdrH;
+      shell.style.setProperty('--agy-hdr-h', `${hdrH}px`);
+    }
 
     const prevHoleKey = `${Boolean(this.holeState?.active)}:${this.holeState?.clipPath || 'none'}`;
     const hasHole = document.body.getAttribute('data-has-browser-hole') === 'true';
@@ -1309,21 +1285,24 @@ export class SurfaceEngine {
     this.holeState = nextHole;
     const nextHoleKey = `${Boolean(nextHole.active)}:${nextHole.clipPath || 'none'}`;
 
-    const bgRoot = document.getElementById('agy-ct-bg-root');
-    const ambientCanvas = document.getElementById('agy-ct-ambient-canvas');
+    if (nextHoleKey !== this.lastHoleAppliedKey) {
+      this.lastHoleAppliedKey = nextHoleKey;
+      const bgRoot = document.getElementById('agy-ct-bg-root');
+      const ambientCanvas = document.getElementById('agy-ct-ambient-canvas');
 
-    if (nextHole.active) {
-      shell.setAttribute('data-agy-hole-active', '1');
-      shell.style.setProperty('--agy-hole-clip', nextHole.clipPath);
-      document.documentElement.style.setProperty('--agy-hole-clip', nextHole.clipPath);
-      if (bgRoot) bgRoot.style.clipPath = nextHole.clipPath;
-      if (ambientCanvas) ambientCanvas.style.clipPath = nextHole.clipPath;
-    } else {
-      shell.removeAttribute('data-agy-hole-active');
-      shell.style.removeProperty('--agy-hole-clip');
-      document.documentElement.style.removeProperty('--agy-hole-clip');
-      if (bgRoot) bgRoot.style.clipPath = 'none';
-      if (ambientCanvas) ambientCanvas.style.clipPath = 'none';
+      if (nextHole.active) {
+        shell.setAttribute('data-agy-hole-active', '1');
+        shell.style.setProperty('--agy-hole-clip', nextHole.clipPath);
+        document.documentElement.style.setProperty('--agy-hole-clip', nextHole.clipPath);
+        if (bgRoot) bgRoot.style.clipPath = nextHole.clipPath;
+        if (ambientCanvas) ambientCanvas.style.clipPath = nextHole.clipPath;
+      } else {
+        shell.removeAttribute('data-agy-hole-active');
+        shell.style.removeProperty('--agy-hole-clip');
+        document.documentElement.style.removeProperty('--agy-hole-clip');
+        if (bgRoot) bgRoot.style.clipPath = 'none';
+        if (ambientCanvas) ambientCanvas.style.clipPath = 'none';
+      }
     }
 
     if (!this.resizeObserver && typeof ResizeObserver !== 'undefined') {
@@ -1348,10 +1327,13 @@ export class SurfaceEngine {
     const isSplit = Boolean(document.querySelector?.('[data-split-panes]'));
     const rawPanes = isSplit ? (document.querySelectorAll?.('[data-tiling-pane]')?.length || 2) : 1;
     const nextSplitCount = isSplit ? Math.max(2, rawPanes) : 1;
-    if (isSplit) {
-      document.body?.setAttribute?.('data-agy-split-active', '1');
-    } else {
-      document.body?.removeAttribute?.('data-agy-split-active');
+    if (isSplit !== this.lastSplitActive) {
+      this.lastSplitActive = isSplit;
+      if (isSplit) {
+        document.body?.setAttribute?.('data-agy-split-active', '1');
+      } else {
+        document.body?.removeAttribute?.('data-agy-split-active');
+      }
     }
     if (nextSplitCount !== this.lastSplitCount) {
       this.lastSplitCount = nextSplitCount;
@@ -1587,7 +1569,10 @@ export class SurfaceEngine {
     if (this.onVisibilityChange) document.removeEventListener?.('visibilitychange', this.onVisibilityChange);
     document.documentElement?.classList?.remove?.('agy-ct-idle-paused');
     this.observer?.disconnect();
+    this.observer = null;
     this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    this.observedHoleEl = null;
     this.cancelPicker();
     this.lastCssText = '';
 
@@ -1610,6 +1595,11 @@ export class SurfaceEngine {
     document.body.classList.remove('agy-ct-active');
     document.body?.removeAttribute?.('data-agy-split-active');
     this.lastSplitCount = 1;
+    this.lastShellEl = null;
+    this.lastSidebarW = -1;
+    this.lastHdrH = -1;
+    this.lastHoleAppliedKey = '';
+    this.lastSplitActive = null;
     document.documentElement.style.removeProperty('--agy-hole-clip');
 
     const api = typeof window !== 'undefined' ? window.electronNative : null;

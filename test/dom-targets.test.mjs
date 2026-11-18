@@ -145,3 +145,55 @@ test('dtFindChatBubbles batches DOM queries into <= 2 calls and dtFindSettingsCo
     globalThis.document = origDoc;
   }
 });
+
+test('dtFindChatBubbles skips redundant second ancestor walk when fallback selector adds zero non-tight turns', () => {
+  const origDoc = globalThis.document;
+  try {
+    let parentReads = 0;
+    const makeTrackedTurn = () => {
+      const outer = {
+        children: [],
+        parentElement: null,
+        className: '',
+        getAttribute: (k) => (k === 'data-testid' ? 'user-message' : null),
+        closest: () => null,
+        contains(other) {
+          return other === this || this.children.includes(other);
+        }
+      };
+      const frame = {
+        children: [],
+        className: 'agy-user-bubble-frame',
+        get parentElement() {
+          parentReads += 1;
+          return outer;
+        },
+        getAttribute: () => null,
+        closest: () => null,
+        contains(other) {
+          return other === this;
+        }
+      };
+      outer.children.push(frame);
+      return { outer, frame };
+    };
+
+    const t1 = makeTrackedTurn();
+    const t2 = makeTrackedTurn();
+    const t3 = makeTrackedTurn();
+
+    globalThis.document = {
+      querySelectorAll(sel) {
+        if (sel.includes('.agy-user-bubble-frame')) return [t1.frame, t2.frame, t3.frame];
+        if (sel.includes('[data-testid="user-message"]')) return [t1.outer, t2.outer, t3.outer];
+        return [];
+      }
+    };
+
+    const res = dtFindChatBubbles({});
+    assert.deepEqual(res, [t1.frame, t2.frame, t3.frame]);
+    assert.equal(parentReads, 3, `Expected 1 parent walk per tight bubble (3 total), got ${parentReads}`);
+  } finally {
+    globalThis.document = origDoc;
+  }
+});

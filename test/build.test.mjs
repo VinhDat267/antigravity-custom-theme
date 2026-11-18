@@ -9,6 +9,7 @@ import {
   MODULE_ORDER,
   stripModuleSyntax,
   stripDeletedWallpapers,
+  stripHiddenAssets,
   buildBundle
 } from '../scripts/build.mjs';
 
@@ -301,9 +302,48 @@ test('buildBundle embeds assets/pets/*.webp sprites into MASCOT_TEMPLATES withou
       `data:image/webp;base64,${Buffer.from('LUFFYWEBP').toString('base64')}`,
       'injectEmbeddedDataUris must stop at object boundary and not overwrite subsequent mascot'
     );
+
+    // stripHiddenAssets strips hiddenPets inside MASCOT_TEMPLATES without touching WALLPAPERS
+    const strippedPets = stripHiddenAssets(res.code, {
+      hiddenWallpapers: ['luffy-gear5-anime'],
+      hiddenPets: ['luffy-anime', 'thunder-samurai']
+    });
+    const captureHiddenPets = strippedPets.replace(
+      'controller.init();',
+      'globalThis.__CAPTURED_HP__ = { pets: MASCOT_TEMPLATES, wps: WALLPAPERS }; controller.init();'
+    );
+    const sandbox4 = {
+      ...sandbox,
+      document: { ...sandbox.document },
+      __CAPTURED_HP__: null
+    };
+    sandbox4.window = sandbox4;
+    sandbox4.globalThis = sandbox4;
+    new vm.Script(captureHiddenPets).runInNewContext(sandbox4);
+    assert.equal(sandbox4.__CAPTURED_HP__.pets['luffy-anime']?.embeddedDataUri, '');
+    assert.equal(
+      sandbox4.__CAPTURED_HP__.pets['luffy-gear5-anime']?.embeddedDataUri,
+      `data:image/webp;base64,${Buffer.from('GEAR5WEBP').toString('base64')}`,
+      'hiddenWallpapers must not strip MASCOT_TEMPLATES'
+    );
+    const tsWp = sandbox4.__CAPTURED_HP__.wps.find((w) => w.id === 'thunder-samurai');
+    assert.ok(tsWp?.embeddedDataUri.startsWith('data:image/'), 'hiddenPets must not strip WALLPAPERS');
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
+});
+
+test('built-in WebP pet sprites stay compact (< 60 KB combined) with valid RIFF WEBP headers', () => {
+  const repoRoot = path.resolve(import.meta.dirname, '..');
+  const p1 = path.join(repoRoot, 'assets', 'pets', 'luffy-anime.webp');
+  const p2 = path.join(repoRoot, 'assets', 'pets', 'luffy-gear5-anime.webp');
+  const b1 = fs.readFileSync(p1);
+  const b2 = fs.readFileSync(p2);
+  assert.equal(b1.subarray(0, 4).toString('ascii'), 'RIFF');
+  assert.equal(b1.subarray(8, 12).toString('ascii'), 'WEBP');
+  assert.equal(b2.subarray(0, 4).toString('ascii'), 'RIFF');
+  assert.equal(b2.subarray(8, 12).toString('ascii'), 'WEBP');
+  assert.ok(b1.length + b2.length < 60_000, `Expected combined WebP sprites < 60 KB, got ${b1.length + b2.length} bytes`);
 });
 
 

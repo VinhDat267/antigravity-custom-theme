@@ -290,9 +290,9 @@ export class AmbientCanvasEngine {
 
   drawFrame(ts) {
     const ctx = this.ctx;
-    if (!ctx) return;
     const w = this.width;
     const h = this.height;
+    if (!ctx || w <= 0 || h <= 0) return;
     const dpr = this.dpr || 1;
     const rawDt = this.lastDrawTs ? (ts - this.lastDrawTs) / 16.667 : 1;
     const dt = Math.max(0.25, Math.min(2.2, rawDt));
@@ -355,6 +355,7 @@ export class AmbientCanvasEngine {
     }
 
     if (this.mode === 'sakura') {
+      ctx.fillStyle = '#f9a8d4';
       for (const p of this.particles) {
         p.swayPhase += 0.03 * dt;
         p.x += (p.vx + Math.sin(p.swayPhase) * 0.65) * dt;
@@ -364,7 +365,7 @@ export class AmbientCanvasEngine {
         const cos = Math.cos(p.angle) * dpr;
         const sin = Math.sin(p.angle) * dpr;
         ctx.setTransform(cos, sin, -sin, cos, p.x * dpr, p.y * dpr);
-        ctx.fillStyle = `rgba(249, 168, 212, ${p.alpha})`;
+        ctx.globalAlpha = p.alpha;
         ctx.beginPath();
         ctx.ellipse(0, 0, p.size, p.size * 0.55, 0, 0, Math.PI * 2);
         ctx.fill();
@@ -372,23 +373,45 @@ export class AmbientCanvasEngine {
           Object.assign(p, this.createParticle(w, h, false));
         }
       }
+      ctx.globalAlpha = 1;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       return;
     }
 
     if (this.mode === 'snow') {
       ctx.fillStyle = '#f8fafc';
+      let hasSoft = false;
+      ctx.beginPath();
       for (const p of this.particles) {
         p.swayPhase += 0.02 * dt;
         p.x += (p.vx + Math.sin(p.swayPhase) * 0.4) * dt;
         p.y += p.vy * dt;
-        ctx.globalAlpha = p.alpha;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        if (p.alpha < 0.62) {
+          hasSoft = true;
+          ctx.moveTo(p.x + p.r, p.y);
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        }
+      }
+      if (hasSoft) {
+        ctx.globalAlpha = 0.52;
         ctx.fill();
+      }
+
+      let hasBright = false;
+      ctx.beginPath();
+      for (const p of this.particles) {
+        if (p.alpha >= 0.62) {
+          hasBright = true;
+          ctx.moveTo(p.x + p.r, p.y);
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        }
         if (p.y > h + 14) {
           Object.assign(p, this.createParticle(w, h, false));
         }
+      }
+      if (hasBright) {
+        ctx.globalAlpha = 0.78;
+        ctx.fill();
       }
       ctx.globalAlpha = 1;
       return;
