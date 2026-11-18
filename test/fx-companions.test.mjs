@@ -485,7 +485,7 @@ test('PetStage roam mode sleeps rAF once target is reached and wakes on next roa
   }
 });
 
-test('PetStage triggerClickReaction displays localized One Piece quips for all 4 One Piece mascots without real timer overhead', () => {
+test('PetStage triggerClickReaction displays localized One Piece quips for all 6 One Piece mascots without real timer overhead', () => {
   const origDoc = globalThis.document;
   const origWin = globalThis.window;
   const origSetTimeout = globalThis.setTimeout;
@@ -609,6 +609,7 @@ test('PetStage applies portrait aspect dimensions, renders embedded WebP img cle
 
   const makeTrackEl = (tag) => {
     const classes = new Set();
+    const listeners = {};
     return {
       tagName: tag.toUpperCase(),
       id: '',
@@ -625,7 +626,15 @@ test('PetStage applies portrait aspect dimensions, renders embedded WebP img cle
       },
       setAttribute() {},
       getBoundingClientRect: () => ({ left: 100, top: 20, width: 109, height: 176 }),
-      addEventListener() {},
+      addEventListener(type, fn) {
+        listeners[type] = fn;
+      },
+      emit(type, evt) {
+        listeners[type]?.(evt);
+      },
+      setPointerCapture() {
+        throw new Error('NotFoundError: no active pointer');
+      },
       remove() {},
       append(...kids) {
         this.children.push(...kids);
@@ -637,6 +646,7 @@ test('PetStage applies portrait aspect dimensions, renders embedded WebP img cle
     };
   };
 
+  let xPct = 80;
   let yPct = 1;
   try {
     MASCOT_TEMPLATES['luffy-anime'].embeddedDataUri = 'data:image/webp;base64,FAKEIMG';
@@ -660,7 +670,7 @@ test('PetStage applies portrait aspect dimensions, renders embedded WebP img cle
       getConfig: () => ({
         enabled: true,
         lang: 'vi',
-        pet: { enabled: true, id: 'luffy-anime', mode: 'float', size: 176, opacity: 96, pos: { xPct: 80, yPct }, showSpeechOnClick: true }
+        pet: { enabled: true, id: 'luffy-anime', mode: 'float', size: 176, opacity: 96, pos: { xPct, yPct }, showSpeechOnClick: true }
       }),
       getCustomMedia: () => ({}),
       getBrowserHoleRect: () => null,
@@ -676,10 +686,25 @@ test('PetStage applies portrait aspect dimensions, renders embedded WebP img cle
       assert.equal(renderedImg.src, 'data:image/webp;base64,FAKEIMG');
       assert.equal(renderedImg.draggable, false, 'Native HTML5 drag must be disabled on anime sprite img');
       assert.equal(pet.speechEl.classList.contains('is-below'), true, 'Speech bubble must flip downward when y < 64');
+      assert.equal(pet.speechEl.classList.contains('is-align-right'), true, 'Speech bubble must align right when pet sits near right edge');
 
+      assert.doesNotThrow(
+        () => pet.stageEl.emit('pointerdown', { button: 0, clientX: 120, clientY: 60, pointerId: 99 }),
+        'Synthetic pointerdown must swallow setPointerCapture errors'
+      );
+      pet.dragging = false;
+
+      xPct = 2;
       yPct = 48;
       pet.update();
       assert.equal(pet.speechEl.classList.contains('is-below'), false, 'Speech bubble should sit above pet when y >= 64');
+      assert.equal(pet.speechEl.classList.contains('is-align-left'), true, 'Speech bubble must align left when pet sits near left edge');
+      assert.equal(pet.speechEl.classList.contains('is-align-right'), false);
+
+      xPct = 50;
+      pet.update();
+      assert.equal(pet.speechEl.classList.contains('is-align-left'), false);
+      assert.equal(pet.speechEl.classList.contains('is-align-right'), false);
     } finally {
       pet.destroy();
     }

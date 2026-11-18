@@ -957,7 +957,8 @@ export function buildStylesheet(config, customMedia = {}) {
       position: absolute;
       bottom: calc(100% + 8px);
       left: 50%;
-      transform: translateX(-50%) translateY(4px);
+      --speech-tx: -50%;
+      transform: translate(var(--speech-tx, -50%), 4px);
       background: ${isLight ? '#fffbeb' : '#14161f'};
       color: ${isLight ? '#0f172a' : '#f8fafc'};
       border: 1px solid var(--agy-ct-accent);
@@ -970,13 +971,23 @@ export function buildStylesheet(config, customMedia = {}) {
       transition: opacity 0.2s ease, transform 0.2s ease;
       ${isLight ? 'box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14);' : ''}
     }
+    .agy-ct-pet-speech.is-align-right {
+      left: auto;
+      right: 0;
+      --speech-tx: 0%;
+    }
+    .agy-ct-pet-speech.is-align-left {
+      left: 0;
+      right: auto;
+      --speech-tx: 0%;
+    }
     .agy-ct-pet-speech.is-below {
       bottom: auto;
       top: calc(100% + 8px);
-      transform: translateX(-50%) translateY(-4px);
+      transform: translate(var(--speech-tx, -50%), -4px);
     }
-    .agy-ct-pet-speech.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
-    .agy-ct-pet-speech.is-below.is-visible { transform: translateX(-50%) translateY(0); }
+    .agy-ct-pet-speech.is-visible { opacity: 1; transform: translate(var(--speech-tx, -50%), 0); }
+    .agy-ct-pet-speech.is-below.is-visible { transform: translate(var(--speech-tx, -50%), 0); }
     .agy-ct-pet-burst {
       position: fixed;
       pointer-events: none;

@@ -679,6 +679,7 @@ test('One Piece Dark & Light & Gear 5 Nika bundles emit balanced Zero-Live-Blur 
   assert.match(lightCss, /#agy-ct-launcher\s*\{[^}]*background:\s*#fffbeb/, 'Light mode launcher pill must use parchment light background');
   assert.match(lightCss, /\.agy-ct-pet-speech\s*\{[^}]*background:\s*#fffbeb/, 'Light mode pet speech bubble must use parchment light background');
   assert.match(lightCss, /\.agy-ct-pet-speech\.is-below\s*\{[^}]*top:\s*calc\(100% \+ 8px\)/, 'Pet speech must support downward flip near top edge');
+  assert.match(lightCss, /\.agy-ct-pet-speech\.is-align-right\s*\{[^}]*right:\s*0/, 'Pet speech must support right-edge horizontal alignment');
   assert.match(lightCss, /#agy-ct-pet-stage\s*\{[^}]*pointer-events:\s*none/, 'Pet stage wrapper must allow click-passthrough on empty margin');
   assert.match(lightCss, /\.agy-ct-pet-body\s*>\s*img\s*\{[^}]*pointer-events:\s*auto/, 'Pet img sprites must keep pointer-events:auto for dragging');
   assert.match(lightCss, /pointer-events:\s*visiblePainted/, 'Inline SVG pets must hit-test only painted shapes');

@@ -207,7 +207,9 @@ export class PetStage {
       const rect = this.stageEl.getBoundingClientRect();
       this.dragOffset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
       this.dragStart = { x: e.clientX, y: e.clientY };
-      this.stageEl.setPointerCapture?.(e.pointerId);
+      try {
+        this.stageEl.setPointerCapture?.(e.pointerId);
+      } catch {}
     });
 
     this.stageEl.addEventListener('pointermove', (e) => {
@@ -467,6 +469,20 @@ export class PetStage {
         this.speechEl.classList.add('is-below');
       } else {
         this.speechEl.classList.remove('is-below');
+      }
+      const box = this.getStageBox();
+      const vw = typeof window !== 'undefined' ? window.innerWidth || 1280 : 1280;
+      const margin = Math.min(Math.round(vw * 0.35), Math.max(220, Math.round(vw * 0.18)));
+      const centerX = this.pos.x + box.width * 0.5;
+      if (centerX > vw - margin) {
+        this.speechEl.classList.add('is-align-right');
+        this.speechEl.classList.remove('is-align-left');
+      } else if (centerX < margin) {
+        this.speechEl.classList.add('is-align-left');
+        this.speechEl.classList.remove('is-align-right');
+      } else {
+        this.speechEl.classList.remove('is-align-right');
+        this.speechEl.classList.remove('is-align-left');
       }
     }
   }
