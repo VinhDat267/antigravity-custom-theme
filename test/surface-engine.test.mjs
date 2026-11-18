@@ -422,7 +422,7 @@ test('SurfaceEngine skips rAF on agent-response streaming mutations, eliminates 
     observerCb([
       {
         type: 'childList',
-        target: { closest: (sel) => (sel === '[data-testid="agent-response"]' ? {} : null) },
+        target: { closest: (sel) => (sel.includes('[data-testid="agent-response"]') ? {} : null) },
         addedNodes: [],
         removedNodes: []
       }
@@ -502,7 +502,130 @@ test('buildStylesheet styles ancestor [data-split-panes] tiling panes, splitters
     assert.ok(css.includes('[data-testid="tiling-splitter"]'));
     assert.ok(css.includes('[data-splitter-band]'));
     assert.ok(css.includes('[data-testid="pane-titlebar-toolbar"][data-reveal-on-hover]'));
-    assert.ok(css.includes('body:has([data-split-panes]) #agy-ct-launcher'));
+    assert.ok(css.includes('body[data-agy-split-active="1"] #agy-ct-launcher'));
+    assert.ok(!css.includes('body:has([data-split-panes])'));
+  }
+});
+
+test('Multi-split perf: buildStylesheet removes universal * selectors, overflow will-change bloat, and idle SVG child animations; SurfaceEngine skips tool-group-collapsible mutations and reports split pane count', () => {
+  const css = buildStylesheet({ ...DEFAULT_CONFIG, enabled: true }, {});
+  assertBalancedCssBraces(css);
+  assert.ok(!css.includes('.agy-ct-bubble-styled *'));
+  assert.ok(!css.includes('#agy-ct-settings-panel *'));
+  assert.ok(!css.includes(':not(.settings-modal-container *)'));
+  assert.ok(!css.includes('will-change: scroll-position'));
+  assert.ok(css.includes('contain: layout style paint'));
+  assert.ok(!/(?:^|\n)\.agy-ct-anim-spin\s*\{\s*animation:/m.test(css));
+  assert.ok(css.includes('#agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-spin'));
+  assert.ok(css.includes('.agy-ct-pet-body'));
+
+  const origDoc = globalThis.document;
+  const origWin = globalThis.window;
+  const origMutationObserver = globalThis.MutationObserver;
+  const origResizeObserver = globalThis.ResizeObserver;
+  const origRaf = globalThis.requestAnimationFrame;
+  const origCancelRaf = globalThis.cancelAnimationFrame;
+
+  try {
+    let observerCb = null;
+    const rafQueue = [];
+    let hasSplit = false;
+    let tilingPanes = [];
+    const splitEvents = [];
+
+    const makeStyle = () => ({ setProperty() {}, removeProperty() {} });
+    const shellEl = {
+      style: makeStyle(),
+      setAttribute() {},
+      removeAttribute() {},
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 1400, height: 900, right: 1400, bottom: 900 }),
+      querySelector: () => null
+    };
+    const bodyEl = {
+      attributes: {},
+      classList: { add() {}, remove() {} },
+      getAttribute: (k) => bodyEl.attributes[k] ?? null,
+      setAttribute: (k, v) => {
+        bodyEl.attributes[k] = v;
+      },
+      removeAttribute: (k) => {
+        delete bodyEl.attributes[k];
+      },
+      prepend() {},
+      appendChild() {}
+    };
+
+    globalThis.ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+    globalThis.MutationObserver = class {
+      constructor(cb) {
+        observerCb = cb;
+      }
+      observe() {}
+      disconnect() {}
+    };
+    globalThis.requestAnimationFrame = (fn) => {
+      rafQueue.push(fn);
+      return rafQueue.length;
+    };
+    globalThis.cancelAnimationFrame = () => {};
+    globalThis.window = {
+      addEventListener() {},
+      removeEventListener() {}
+    };
+    globalThis.document = {
+      hidden: false,
+      documentElement: { classList: { add() {}, remove() {}, toggle() {} }, style: makeStyle() },
+      body: bodyEl,
+      head: { appendChild() {} },
+      getElementById: () => ({ style: makeStyle(), setAttribute() {}, remove() {} }),
+      querySelector: (sel) => {
+        if (sel.includes('.agy-shell')) return shellEl;
+        if (sel === '[data-split-panes]') return hasSplit ? {} : null;
+        return null;
+      },
+      querySelectorAll: (sel) => {
+        if (sel === '[data-tiling-pane]') return tilingPanes;
+        return [];
+      },
+      addEventListener() {},
+      removeEventListener() {}
+    };
+
+    const engine = new SurfaceEngine({
+      getConfig: () => DEFAULT_CONFIG,
+      getCustomMedia: () => ({}),
+      onSplitChange: (count) => splitEvents.push(count)
+    });
+    engine.mount();
+
+    observerCb([
+      {
+        type: 'childList',
+        target: { closest: (sel) => (sel.includes('[data-testid="tool-group-collapsible"]') ? {} : null) },
+        addedNodes: [],
+        removedNodes: []
+      }
+    ]);
+    assert.equal(rafQueue.length, 0, 'Streaming mutations inside tool-group-collapsible must not schedule rAF');
+
+    hasSplit = true;
+    tilingPanes = [{}, {}, {}];
+    engine.syncShellAndHoleMetrics(DEFAULT_CONFIG);
+    assert.equal(bodyEl.attributes['data-agy-split-active'], '1');
+    assert.deepEqual(splitEvents, [3]);
+
+    engine.destroy();
+  } finally {
+    globalThis.document = origDoc;
+    globalThis.window = origWin;
+    globalThis.MutationObserver = origMutationObserver;
+    globalThis.ResizeObserver = origResizeObserver;
+    globalThis.requestAnimationFrame = origRaf;
+    globalThis.cancelAnimationFrame = origCancelRaf;
   }
 });
 

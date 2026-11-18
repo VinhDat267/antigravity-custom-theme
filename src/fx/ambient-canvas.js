@@ -17,6 +17,7 @@ export class AmbientCanvasEngine {
     this.rafId = null;
     this.lastTs = 0;
     this.lastDrawTs = 0;
+    this.splitCount = 1;
     this.frameIntervalMs = 14;
     this.unfocused = false;
     this.dpr = 1;
@@ -28,11 +29,11 @@ export class AmbientCanvasEngine {
     this.onResize = this.resize.bind(this);
     this.onBlur = () => {
       this.unfocused = true;
-      this.frameIntervalMs = 48;
+      this.syncFrameInterval();
     };
     this.onFocus = () => {
       this.unfocused = false;
-      this.frameIntervalMs = 14;
+      this.syncFrameInterval();
     };
     this.onVisibility = () => {
       if (this.doc?.hidden) {
@@ -49,9 +50,37 @@ export class AmbientCanvasEngine {
     this.resize();
   }
 
+  syncFrameInterval() {
+    if (this.unfocused) {
+      this.frameIntervalMs = 48;
+    } else if (this.splitCount >= 3) {
+      this.frameIntervalMs = 36;
+    } else if (this.splitCount === 2) {
+      this.frameIntervalMs = 28;
+    } else {
+      this.frameIntervalMs = 14;
+    }
+  }
+
+  setSplitCount(count) {
+    const next = Math.max(1, Math.round(Number(count) || 1));
+    if (next === this.splitCount) return;
+    const prevMulti = this.splitCount >= 2;
+    const nextMulti = next >= 2;
+    this.splitCount = next;
+    this.syncFrameInterval();
+    if (prevMulti !== nextMulti) {
+      this.resize();
+    }
+    if (this.mode !== 'none' && this.particles.length > 0) {
+      this.seedParticles();
+    }
+  }
+
   resize() {
     if (!this.canvas || !this.win) return;
-    const dpr = Math.min(this.win.devicePixelRatio || 1, 1.5);
+    const maxDpr = this.splitCount >= 2 ? 1 : 1.5;
+    const dpr = Math.min(this.win.devicePixelRatio || 1, maxDpr);
     this.dpr = dpr;
     this.width = this.win.innerWidth || 1280;
     this.height = this.win.innerHeight || 720;
@@ -135,6 +164,9 @@ export class AmbientCanvasEngine {
     } else if (this.mode === 'snow') {
       count = Math.round(28 + factor * 50);
     }
+
+    const splitScale = this.splitCount >= 3 ? 0.5 : this.splitCount === 2 ? 0.68 : 1;
+    count = Math.max(10, Math.round(count * splitScale));
 
     for (let i = 0; i < count; i += 1) {
       this.particles.push(this.createParticle(w, h, true));

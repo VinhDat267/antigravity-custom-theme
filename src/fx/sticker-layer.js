@@ -121,7 +121,11 @@ export class StickerLayer {
   }
 
   applyNodeCoords(node, x, y) {
-    node.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
+    const next = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
+    if (node.dataset?.lastTransform !== next) {
+      if (node.dataset) node.dataset.lastTransform = next;
+      node.style.transform = next;
+    }
   }
 
   renderIntoNode(node, id, customUrl) {

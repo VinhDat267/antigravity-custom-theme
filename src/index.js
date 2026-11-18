@@ -129,6 +129,7 @@ class CustomThemeController {
         this.petStage?.update();
         this.stickerLayer?.repositionAll();
       },
+      onSplitChange: (count) => this.ambient?.setSplitCount(count),
       onDomMutate: () => {
         this.ensureLauncherAndSidebarHooks();
         this.stickerLayer?.scheduleReposition?.();
@@ -307,6 +308,7 @@ class CustomThemeController {
     this.ambient?.setHoleClip(holeState?.active ? holeState.clipPath : 'none');
 
     if (this.ambient) {
+      this.ambient.setSplitCount(this.surface?.lastSplitCount || 1);
       if (this.config.enabled) {
         this.ambient.configure(this.config.atmosphereId, this.config.atmosphereIntensity);
       } else {

@@ -298,19 +298,18 @@ export function buildStylesheet(config, customMedia = {}) {
         z-index: 2;
       }
 
-      .agy-shell .overflow-y-auto {
-        will-change: scroll-position;
-      }
-
       .agy-shell .agy-sheet,
       .agy-shell .agy-inset-shell,
       .agy-shell .browser-hole-opaque,
       .agy-shell [data-main-content-body="true"],
       .agy-shell [data-side-panel-body="true"],
-      .agy-shell .bg-background:not(.settings-modal-container):not(.settings-modal-container *):not(#agy-ct-settings-panel *) {
+      .agy-shell .bg-background:not(.settings-modal-container) {
         background: transparent !important;
         background-color: transparent !important;
         background-image: none !important;
+      }
+      .agy-shell .settings-modal-container .bg-background {
+        background-color: #18181b !important;
       }
 
       /* Pre-baked L-shaped glass frame (Sidebar + Topbar) */
@@ -492,7 +491,7 @@ export function buildStylesheet(config, customMedia = {}) {
         -webkit-backdrop-filter: none !important;
         box-sizing: border-box !important;
         overflow: hidden !important;
-        contain: layout style;
+        contain: layout style paint;
       }
 
       .agy-shell [data-testid="agent-response"] pre,
@@ -642,7 +641,7 @@ export function buildStylesheet(config, customMedia = {}) {
         [data-testid="overview-panel-host-overlay"],
         [data-testid="overview-panel-host-gutter"],
         [data-testid="overview-panel-host-sibling"],
-        div:has(> [data-testid="battle-overview-dropdown"])
+        [data-base-ui-portal] div:has(> [data-testid="battle-overview-dropdown"])
       ) {
         background: ${
           isLight
@@ -741,7 +740,7 @@ export function buildStylesheet(config, customMedia = {}) {
         border: none !important;
         box-shadow: none !important;
       }
-      .agy-ct-bubble-styled * {
+      .agy-ct-bubble-styled :is(p, span, div, code, pre, a, strong, em) {
         color: inherit;
       }
       ${scrollCapCss}
@@ -790,7 +789,7 @@ export function buildStylesheet(config, customMedia = {}) {
 
     ${avatarCss}
 
-    /* SVG Character Animations */
+    /* SVG Character Animations (GPU-composited container + interactive SVG children) */
     .agy-ct-svg-art { width: 100%; height: 100%; display: block; overflow: visible; }
     @keyframes agyCtBob { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-2.5px); } }
     @keyframes agyCtFloat { 0%, 100% { transform: translateY(0px) rotate(-1deg); } 50% { transform: translateY(-6px) rotate(1.5deg); } }
@@ -799,13 +798,12 @@ export function buildStylesheet(config, customMedia = {}) {
     @keyframes agyCtTwinkle { 0%, 100% { opacity: 0.45; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.12); } }
     @keyframes agyCtSpark { 0%, 100% { opacity: 0.6; } 45% { opacity: 1; } 52% { opacity: 0.35; } 60% { opacity: 1; } }
     @keyframes agyCtSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .agy-ct-anim-bob { animation: agyCtBob 3.2s ease-in-out infinite; }
-    .agy-ct-anim-float { animation: agyCtFloat 4.2s ease-in-out infinite; }
-    .agy-ct-anim-blink { animation: agyCtBlink 4.6s ease-in-out infinite; }
-    .agy-ct-anim-wag { animation: agyCtWag 2.4s ease-in-out infinite; }
-    .agy-ct-anim-twinkle { animation: agyCtTwinkle 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-    .agy-ct-anim-spark { animation: agyCtSpark 1.8s linear infinite; }
-    .agy-ct-anim-spin { animation: agyCtSpin 16s linear infinite; }
+    .agy-ct-bubble-styled:hover > .agy-ct-bubble-mascot { animation: agyCtBob 2.2s ease-in-out infinite; will-change: transform; }
+    #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-blink { animation: agyCtBlink 2.4s ease-in-out infinite; }
+    #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-wag { animation: agyCtWag 1.6s ease-in-out infinite; }
+    #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-twinkle { animation: agyCtTwinkle 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+    #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-spark { animation: agyCtSpark 1.4s linear infinite; }
+    #agy-ct-pet-stage:is(:hover, .is-reacting) .agy-ct-anim-spin { animation: agyCtSpin 10s linear infinite; }
 
     /* Pet & Sticker Layers */
     #agy-ct-pet-stage {
@@ -820,8 +818,8 @@ export function buildStylesheet(config, customMedia = {}) {
       contain: layout style;
     }
     #agy-ct-pet-stage:active { cursor: grabbing; }
-    .agy-ct-pet-body { width: 100%; height: 100%; transition: transform 0.16s ease; }
-    #agy-ct-pet-stage:hover .agy-ct-pet-body { transform: scale(1.06); }
+    .agy-ct-pet-body { width: 100%; height: 100%; animation: agyCtFloat 4.2s ease-in-out infinite; will-change: transform; transition: scale 0.16s ease; }
+    #agy-ct-pet-stage:hover .agy-ct-pet-body { scale: 1.06; }
     .agy-ct-pet-speech {
       position: absolute;
       bottom: calc(100% + 8px);
@@ -870,7 +868,7 @@ export function buildStylesheet(config, customMedia = {}) {
       pointer-events: none;
       z-index: -1;
     }
-    html.agy-ct-idle-paused [class*="agy-ct-anim-"] {
+    html.agy-ct-idle-paused :is([class*="agy-ct-anim-"], .agy-ct-pet-body) {
       animation-play-state: paused !important;
     }
 
@@ -895,7 +893,7 @@ export function buildStylesheet(config, customMedia = {}) {
     ${
       launcherCorner !== 'top-right'
         ? `
-      body:has([data-split-panes]) #agy-ct-launcher {
+      body[data-agy-split-active="1"] #agy-ct-launcher {
         bottom: 112px;
       }
     `
@@ -918,7 +916,7 @@ export function buildStylesheet(config, customMedia = {}) {
       box-sizing: border-box; width: 100%; max-width: 820px;
     }
     #agy-ct-settings-panel.is-open { display: flex; }
-    #agy-ct-settings-panel * { box-sizing: border-box; }
+    #agy-ct-settings-panel :is(div, button, input, select, textarea, label, span, h2, h3, p) { box-sizing: border-box; }
     .agy-ct-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
     .agy-ct-head h2 { margin: 0; font-size: 16px; font-weight: 600; color: #ffffff; }
     .agy-ct-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
@@ -949,13 +947,24 @@ export function buildStylesheet(config, customMedia = {}) {
 }
 
 export class SurfaceEngine {
-  constructor({ getConfig, getCustomMedia, onCustomNavClick, onNativeNavClick, onConfigPatch, onHoleChange, onDomMutate, studioElement }) {
+  constructor({
+    getConfig,
+    getCustomMedia,
+    onCustomNavClick,
+    onNativeNavClick,
+    onConfigPatch,
+    onHoleChange,
+    onSplitChange,
+    onDomMutate,
+    studioElement
+  }) {
     this.getConfig = getConfig;
     this.getCustomMedia = getCustomMedia;
     this.onCustomNavClick = onCustomNavClick;
     this.onNativeNavClick = onNativeNavClick;
     this.onConfigPatch = onConfigPatch;
     this.onHoleChange = onHoleChange;
+    this.onSplitChange = onSplitChange;
     this.onDomMutate = onDomMutate;
     this.studioElement = studioElement || null;
 
@@ -970,6 +979,7 @@ export class SurfaceEngine {
     this.injectedNavBtn = null;
     this.boundNativeItems = new WeakSet();
     this.pickerCleanup = null;
+    this.lastSplitCount = 1;
     this.holeState = { active: false, clipPath: 'none', holeRect: null };
   }
 
@@ -992,10 +1002,16 @@ export class SurfaceEngine {
       if (Array.isArray(records) && records.length > 0) {
         const allInjected = records.every((r) => r.target?.closest?.('[data-agy-ct-injected="true"]'));
         if (allInjected) return;
-        const allInsideAgentResponse = records.every(
-          (r) => r.type === 'childList' && Boolean(r.target?.closest?.('[data-testid="agent-response"]'))
+        const allInsideStreaming = records.every(
+          (r) =>
+            r.type === 'childList' &&
+            Boolean(
+              r.target?.closest?.(
+                '[data-testid="agent-response"], [data-testid="tool-group-collapsible"], [data-testid="worked-for-collapsible"], [data-testid="overview-panel"], .xterm'
+              )
+            )
         );
-        if (allInsideAgentResponse) return;
+        if (allInsideStreaming) return;
         for (const r of records) {
           if (r.type === 'attributes') {
             this.pendingHoleSync = true;
@@ -1050,7 +1066,7 @@ export class SurfaceEngine {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['data-has-browser-hole', 'data-browser-hole']
+      attributeFilter: ['data-has-browser-hole', 'data-browser-hole', 'data-split-panes']
     });
   }
 
@@ -1175,6 +1191,19 @@ export class SurfaceEngine {
 
     if (nextHoleKey !== prevHoleKey) {
       this.onHoleChange?.(nextHole);
+    }
+
+    const isSplit = Boolean(document.querySelector?.('[data-split-panes]'));
+    const rawPanes = isSplit ? (document.querySelectorAll?.('[data-tiling-pane]')?.length || 2) : 1;
+    const nextSplitCount = isSplit ? Math.max(2, rawPanes) : 1;
+    if (isSplit) {
+      document.body?.setAttribute?.('data-agy-split-active', '1');
+    } else {
+      document.body?.removeAttribute?.('data-agy-split-active');
+    }
+    if (nextSplitCount !== this.lastSplitCount) {
+      this.lastSplitCount = nextSplitCount;
+      this.onSplitChange?.(nextSplitCount);
     }
   }
 
@@ -1427,6 +1456,8 @@ export class SurfaceEngine {
     }
     document.documentElement.classList.remove('agy-ct-active');
     document.body.classList.remove('agy-ct-active');
+    document.body?.removeAttribute?.('data-agy-split-active');
+    this.lastSplitCount = 1;
     document.documentElement.style.removeProperty('--agy-hole-clip');
 
     const api = typeof window !== 'undefined' ? window.electronNative : null;

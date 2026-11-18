@@ -86,7 +86,10 @@ export class PetStage {
     this.bodyEl = null;
     this.speechEl = null;
     this.speechTimer = null;
+    this.reactTimer = null;
     this.lastPetKey = '';
+    this.lastTransform = '';
+    this.lastStepTs = 0;
     this.pos = { x: 180, y: 120 };
     this.target = { x: 180, y: 120 };
     this.dragging = false;
@@ -214,6 +217,13 @@ export class PetStage {
   }
 
   triggerClickReaction() {
+    if (this.stageEl) {
+      this.stageEl.classList?.add?.('is-reacting');
+      clearTimeout(this.reactTimer);
+      this.reactTimer = setTimeout(() => {
+        this.stageEl?.classList?.remove?.('is-reacting');
+      }, 2800);
+    }
     const cfg = this.getConfig();
     if (!cfg.pet?.showSpeechOnClick) return;
     const lang = cfg.lang === 'en' ? 'en' : 'vi';
@@ -258,6 +268,7 @@ export class PetStage {
         this.bodyEl = null;
         this.speechEl = null;
         this.lastPetKey = '';
+        this.lastTransform = '';
       }
       this.activeMode = null;
       return;
@@ -323,10 +334,18 @@ export class PetStage {
       (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : null);
     if (!rafFn) return;
 
-    const step = () => {
+    const step = (ts) => {
       if (this.destroyed) {
         this.rafId = null;
+        this.lastStepTs = 0;
         return;
+      }
+      if (typeof ts === 'number') {
+        if (this.lastStepTs && ts - this.lastStepTs < 15) {
+          this.rafId = rafFn(step);
+          return;
+        }
+        this.lastStepTs = ts;
       }
       let moved = false;
       if (!this.dragging) {
@@ -346,8 +365,9 @@ export class PetStage {
           this.applyCoords();
         }
       }
-      if (mode === 'follow' && !moved && !this.dragging) {
+      if (!moved && !this.dragging) {
         this.rafId = null;
+        this.lastStepTs = 0;
         return;
       }
       this.rafId = rafFn(step);
@@ -377,6 +397,9 @@ export class PetStage {
           { width: window.innerWidth, height: window.innerHeight }
         );
         this.target = clamped;
+        if (!this.rafId && !this.destroyed && !(typeof document !== 'undefined' && document.hidden)) {
+          this.startStepLoop('roam');
+        }
       };
       pickNext();
       this.motionTimer = setInterval(pickNext, 4500);
@@ -387,7 +410,11 @@ export class PetStage {
 
   applyCoords() {
     if (!this.stageEl) return;
-    this.stageEl.style.transform = `translate3d(${Math.round(this.pos.x)}px, ${Math.round(this.pos.y)}px, 0)`;
+    const next = `translate3d(${Math.round(this.pos.x)}px, ${Math.round(this.pos.y)}px, 0)`;
+    if (next !== this.lastTransform) {
+      this.lastTransform = next;
+      this.stageEl.style.transform = next;
+    }
   }
 
   stopMotion() {
@@ -402,6 +429,7 @@ export class PetStage {
       cancelFn?.(this.rafId);
       this.rafId = null;
     }
+    this.lastStepTs = 0;
     this.activeMode = null;
   }
 
@@ -409,6 +437,8 @@ export class PetStage {
     this.destroyed = true;
     this.stopMotion();
     clearTimeout(this.speechTimer);
+    clearTimeout(this.reactTimer);
+    this.lastTransform = '';
     if (typeof window !== 'undefined') {
       window.removeEventListener('mousemove', this.onMouseMove);
       window.removeEventListener('blur', this.onWindowBlur);

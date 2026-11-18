@@ -379,3 +379,104 @@ test('StickerLayer repositions on split composer ResizeObserver and follows focu
     globalThis.cancelAnimationFrame = origCancelRaf;
   }
 });
+
+test('PetStage roam mode sleeps rAF once target is reached and wakes on next roam interval; AmbientCanvasEngine scales DPR, interval, and particle count in multi-split mode', () => {
+  const origDoc = globalThis.document;
+  const origWin = globalThis.window;
+  const rafQueue = [];
+
+  const makeStubEl = () => ({
+    id: '',
+    className: '',
+    style: { left: '', top: '', transform: '', width: '', height: '', opacity: '', cssText: '' },
+    children: [],
+    classList: { add() {}, remove() {} },
+    setAttribute() {},
+    addEventListener() {},
+    remove() {},
+    append(...kids) {
+      this.children.push(...kids);
+    },
+    appendChild(k) {
+      this.children.push(k);
+    }
+  });
+
+  try {
+    globalThis.document = {
+      hidden: false,
+      body: { contains: () => true, appendChild() {} },
+      createElement: () => makeStubEl(),
+      addEventListener() {},
+      removeEventListener() {}
+    };
+    globalThis.window = {
+      innerWidth: 1600,
+      innerHeight: 900,
+      addEventListener() {},
+      removeEventListener() {},
+      requestAnimationFrame: (fn) => {
+        rafQueue.push(fn);
+        return rafQueue.length;
+      },
+      cancelAnimationFrame() {}
+    };
+
+    const pet = new PetStage({
+      getConfig: () => ({
+        enabled: true,
+        lang: 'en',
+        pet: { enabled: true, id: 'ho-ly-chibi', mode: 'roam', size: 80, opacity: 95, pos: { xPct: 20, yPct: 20 } }
+      }),
+      getCustomMedia: () => ({}),
+      getBrowserHoleRect: () => null,
+      onPositionSave: () => {}
+    });
+    try {
+      pet.update();
+      assert.ok(pet.rafId !== null, 'Roam loop must start initially');
+
+      pet.target = { ...pet.pos };
+      const tick = rafQueue.pop();
+      assert.ok(typeof tick === 'function');
+      tick();
+      assert.equal(pet.rafId, null, 'Roam mode must sleep rAF loop once pet settles at target');
+    } finally {
+      pet.destroy();
+    }
+
+    const canvas = createMockCanvas();
+    const mockDoc = {
+      hidden: false,
+      addEventListener() {},
+      removeEventListener() {}
+    };
+    const mockWin = {
+      innerWidth: 1600,
+      innerHeight: 900,
+      devicePixelRatio: 2,
+      addEventListener() {},
+      removeEventListener() {},
+      requestAnimationFrame: () => 1,
+      cancelAnimationFrame() {}
+    };
+    const engine = new AmbientCanvasEngine(canvas, { envWindow: mockWin, envDocument: mockDoc });
+    engine.configure('sakura', 70);
+    assert.equal(canvas.width, 2400);
+    assert.equal(engine.frameIntervalMs, 14);
+    const singleCount = engine.particles.length;
+
+    engine.setSplitCount(3);
+    assert.equal(canvas.width, 1600);
+    assert.ok(engine.frameIntervalMs >= 32, `Expected frameIntervalMs >= 32 for 3 panes, got ${engine.frameIntervalMs}`);
+    assert.ok(engine.particles.length < singleCount, 'Expected fewer particles in 3-pane split mode');
+
+    engine.setSplitCount(1);
+    assert.equal(canvas.width, 2400);
+    assert.equal(engine.frameIntervalMs, 14);
+    engine.destroy();
+  } finally {
+    globalThis.document = origDoc;
+    globalThis.window = origWin;
+  }
+});
