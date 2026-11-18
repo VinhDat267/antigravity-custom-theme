@@ -217,6 +217,10 @@ test('buildStylesheet neutralizes Monokai bottom/header fades, nested sidebar ba
   assert.ok(css.includes('.agy-ct-input-styled .surface-composer-card'));
   assert.ok(css.includes('.agy-ct-bubble-styled [data-testid="user-message-bubble"]'));
   assert.ok(css.includes('.agy-shell .agy-row-actions'));
+  assert.ok(css.includes('.agy-row-actions::before'));
+  assert.ok(css.includes('content: none !important'));
+  assert.ok(css.includes('mask-image: linear-gradient(to right, #000'));
+  assert.ok(css.includes('[data-tiling-pane]::after'));
   assert.ok(css.includes('.agy-shell .bg-sidebar .bg-sidebar'));
   assert.ok(css.includes('[data-testid="worked-for-collapsible"]:hover'));
 });

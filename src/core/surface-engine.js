@@ -367,14 +367,37 @@ export function buildStylesheet(config, customMedia = {}) {
       .agy-shell .agy-sidebar-row:hover {
         background: color-mix(in srgb, ${accent} 14%, rgba(${overlayRgb}, ${Math.min(0.88, sidebarAlpha + 0.16).toFixed(3)})) !important;
       }
-      html.agy-ct-active body.agy-ct-active .agy-shell .bg-sidebar :is(.agy-sidebar-row, [data-testid="conversation-row-history"]) .agy-row-actions,
+      html.agy-ct-active body.agy-ct-active .agy-shell :is(.agy-sidebar-row, [data-testid="conversation-row-history"]) .agy-row-actions,
       .agy-shell .agy-row-actions {
-        background: rgba(${overlayRgb}, 0.88) !important;
+        background: transparent !important;
+        background-color: transparent !important;
         background-image: none !important;
         border: none !important;
-        border-radius: 6px !important;
-        padding-left: 6px !important;
-        padding-right: 4px !important;
+        box-shadow: none !important;
+        padding-left: 4px !important;
+        padding-right: 2px !important;
+      }
+      html.agy-ct-active body.agy-ct-active .agy-shell :is(.agy-sidebar-row, [data-testid="conversation-row-history"]) .agy-row-actions::before,
+      .agy-shell .agy-row-actions::before {
+        content: none !important;
+        display: none !important;
+        background: none !important;
+      }
+      .agy-shell :is(.agy-sidebar-row, [data-testid="conversation-row-history"]):is(:hover, :focus-within, :has(:focus-visible)) .truncate:first-child {
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 78px), transparent calc(100% - 50px));
+        mask-image: linear-gradient(to right, #000 calc(100% - 78px), transparent calc(100% - 50px));
+      }
+      html.agy-ct-active body.agy-ct-active .agy-shell .agy-status-overflow {
+        background: color-mix(in srgb, ${accent} 14%, rgba(${overlayRgb}, 0.82)) !important;
+        box-shadow: none !important;
+      }
+      .agy-shell [data-split-panes] .agy-sheet[data-sheet-inset] [data-tiling-pane]:not([data-has-browser-hole="true"]) {
+        background: transparent !important;
+        background-image: none !important;
+      }
+      .agy-shell [data-split-panes] .agy-sheet[data-sheet-inset] [data-tiling-pane]::after {
+        box-shadow: none !important;
+        background: none !important;
       }
       .agy-shell [data-testid="worked-for-collapsible"] {
         background: transparent !important;
