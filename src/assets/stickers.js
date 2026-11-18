@@ -110,7 +110,7 @@ export const STICKER_TEMPLATES = {
     id: 'mu-rom',
     name: 'Mũ Rơm Hải Tặc',
     nameEn: 'Straw Hat',
-    svg: `<svg class="agy-ct-svg-art" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="opStHat" x1="16" y1="16" x2="48" y2="48" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#fef08a"/><stop offset="100%" stop-color="#eab308"/></linearGradient></defs><path d="M16 37C16 24 23 17 32 17C41 17 48 24 48 37Z" fill="url(#opStHat)" stroke="#a16207" stroke-width="1.6"/><path d="M16 33H48V38H16Z" fill="#dc2626"/><ellipse cx="32" cy="39" rx="25" ry="7.5" fill="url(#opStHat)" stroke="#a16207" stroke-width="1.8"/><path d="M17 39Q32 43 47 39" stroke="#ca8a04" stroke-width="1.2" opacity="0.7"/></svg>`
+    svg: `<svg class="agy-ct-svg-art" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 37C16 24 23 17 32 17C41 17 48 24 48 37Z" fill="#fde047" stroke="#a16207" stroke-width="1.6"/><path d="M19 31C21 23 26 19 32 19C35 19 38 20 40 22C34 21 25 24 19 31Z" fill="#fef9c3" opacity="0.6"/><path d="M16 33H48V38H16Z" fill="#dc2626"/><ellipse cx="32" cy="39" rx="25" ry="7.5" fill="#facc15" stroke="#a16207" stroke-width="1.8"/><path d="M17 39Q32 43 47 39" stroke="#ca8a04" stroke-width="1.2" opacity="0.7"/></svg>`
   },
   'jolly-roger': {
     id: 'jolly-roger',
@@ -122,7 +122,7 @@ export const STICKER_TEMPLATES = {
     id: 'log-pose',
     name: 'La Bàn Log Pose',
     nameEn: 'Log Pose Compass',
-    svg: `<svg class="agy-ct-svg-art" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="opStLog" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#a5f3fc"/><stop offset="100%" stop-color="#0284c7"/></radialGradient></defs><rect x="22" y="42" width="20" height="10" rx="3" fill="#92400e" stroke="#f59e0b" stroke-width="1.5"/><circle cx="32" cy="28" r="17" fill="#fbbf24" stroke="#92400e" stroke-width="1.8"/><circle cx="32" cy="28" r="13" fill="url(#opStLog)" stroke="#bae6fd" stroke-width="1.3"/><path d="M32 17L35 28L32 39L29 28Z" fill="#ef4444" transform="rotate(28 32 28)"/><circle cx="32" cy="28" r="2.6" fill="#fef08a"/></svg>`
+    svg: `<svg class="agy-ct-svg-art" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="22" y="42" width="20" height="10" rx="3" fill="#92400e" stroke="#f59e0b" stroke-width="1.5"/><circle cx="32" cy="28" r="17" fill="#fbbf24" stroke="#92400e" stroke-width="1.8"/><circle cx="32" cy="28" r="13" fill="#0ea5e9" stroke="#bae6fd" stroke-width="1.3"/><path d="M22 26A11 11 0 0 1 36 17A9 9 0 0 0 24 31Z" fill="#a5f3fc" opacity="0.65"/><path d="M32 17L35 28L32 39L29 28Z" fill="#ef4444" transform="rotate(28 32 28)"/><circle cx="32" cy="28" r="2.6" fill="#fef08a"/></svg>`
   }
 };
 

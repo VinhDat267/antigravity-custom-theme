@@ -128,6 +128,7 @@ test('One Piece wallpapers, mascots, and stickers provide valid SVG markup, slug
     assert.match(petSvg, /^<svg[^>]*class="agy-ct-svg-art agy-ct-anim-float"/);
     assert.match(bubbleSvg, /^<svg[^>]*class="agy-ct-svg-art agy-ct-anim-bob"/);
     assert.match(petSvg, /<\/svg>\s*$/);
+    assert.ok(!/url\(#|\bid="/.test(petSvg), `Inline mascot ${petId} must avoid static <defs> IDs so hidden Settings FX previews never break visible SVG fills`);
   }
 
   for (const stId of ['mu-rom', 'jolly-roger', 'log-pose']) {
@@ -135,6 +136,7 @@ test('One Piece wallpapers, mascots, and stickers provide valid SVG markup, slug
     const svg = renderStickerSvg(stId);
     assert.match(svg, /^<svg[^>]*class="agy-ct-svg-art"[^>]*viewBox="0 0 64 64"/);
     assert.match(svg, /<\/svg>\s*$/);
+    assert.ok(!/url\(#|\bid="/.test(svg), `Inline sticker ${stId} must avoid static <defs> IDs so hidden Settings FX previews never break visible SVG fills`);
   }
 
   const seenDefIds = new Set();

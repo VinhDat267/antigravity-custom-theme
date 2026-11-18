@@ -250,21 +250,14 @@ export const MASCOT_TEMPLATES = {
     render(variant = 'pet') {
       const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
       return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="opChHat" x1="22" y1="12" x2="74" y2="48" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#f9a8d4"/><stop offset="100%" stop-color="#ec4899"/>
-    </linearGradient>
-    <linearGradient id="opChBody" x1="30" y1="48" x2="66" y2="86" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#eab382"/><stop offset="100%" stop-color="#c68652"/>
-    </linearGradient>
-  </defs>
   <path d="M29 30L18 16M24 23L14 25M26 20L24 11" stroke="#78350f" stroke-width="3.4" stroke-linecap="round"/>
   <path d="M67 30L78 16M72 23L82 25M70 20L72 11" stroke="#78350f" stroke-width="3.4" stroke-linecap="round"/>
-  <ellipse cx="48" cy="68" rx="15" ry="15" fill="url(#opChBody)" stroke="#78350f" stroke-width="1.4"/>
-  <path d="M36 66C36 58 60 58 60 66L58 80H38Z" fill="#ef4444" opacity="0.9"/>
-  <circle cx="48" cy="46" r="16" fill="url(#opChBody)" stroke="#78350f" stroke-width="1.4"/>
-  <path d="M25 38C25 22 35 14 48 14C61 14 71 22 71 38Z" fill="url(#opChHat)" stroke="#be185d" stroke-width="1.4"/>
-  <ellipse cx="48" cy="38" rx="26" ry="5.5" fill="#f472b6" stroke="#be185d" stroke-width="1.4"/>
+  <ellipse cx="48" cy="68" rx="15" ry="15" fill="#d49560" stroke="#78350f" stroke-width="1.4"/>
+  <path d="M36 66C36 58 60 58 60 66L58 80H38Z" fill="#ef4444" opacity="0.92"/>
+  <circle cx="48" cy="46" r="16" fill="#e5a973" stroke="#78350f" stroke-width="1.4"/>
+  <path d="M25 38C25 22 35 14 48 14C61 14 71 22 71 38Z" fill="#f472b6" stroke="#be185d" stroke-width="1.4"/>
+  <path d="M31 28C33 20 40 16 48 16C54 16 59 18 63 23C55 21 40 22 31 28Z" fill="#fbcfe8" opacity="0.55"/>
+  <ellipse cx="48" cy="38" rx="26" ry="5.5" fill="#ec4899" stroke="#be185d" stroke-width="1.4"/>
   <path d="M45 21H51V31H45ZM43 24H53V28H43Z" fill="#ffffff"/>
   <g class="agy-ct-anim-blink" style="transform-origin:48px 47px">
     <circle cx="41" cy="47" r="2.7" fill="#0f172a"/>
@@ -286,21 +279,15 @@ export const MASCOT_TEMPLATES = {
     render(variant = 'pet') {
       const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
       return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="opSnHull" x1="18" y1="54" x2="78" y2="82" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#d97706"/><stop offset="100%" stop-color="#78350f"/>
-    </linearGradient>
-    <linearGradient id="opSnSail" x1="30" y1="18" x2="66" y2="52" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#fef3c7"/>
-    </linearGradient>
-  </defs>
   <g class="agy-ct-anim-wag" style="transform-origin:48px 56px">
     <line x1="48" y1="14" x2="48" y2="58" stroke="#78350f" stroke-width="3.2" stroke-linecap="round"/>
     <path d="M48 15L66 19L48 24Z" fill="#dc2626"/>
-    <path d="M27 25Q48 18 69 25L65 51Q48 45 31 51Z" fill="url(#opSnSail)" stroke="#cbd5e1" stroke-width="1.3"/>
+    <path d="M27 25Q48 18 69 25L65 51Q48 45 31 51Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.3"/>
+    <path d="M31 46Q48 41 65 46L65 51Q48 45 31 51Z" fill="#fef3c7"/>
     <circle cx="48" cy="37" r="7" fill="#fef08a" stroke="#dc2626" stroke-width="1.6"/>
   </g>
-  <path d="M20 58H76L68 74C65 78 60 80 54 80H40C32 80 25 74 20 58Z" fill="url(#opSnHull)" stroke="#fbbf24" stroke-width="1.5"/>
+  <path d="M20 58H76L68 74C65 78 60 80 54 80H40C32 80 25 74 20 58Z" fill="#b45309" stroke="#fbbf24" stroke-width="1.5"/>
+  <path d="M23 59H73L70 65H25Z" fill="#d97706" opacity="0.8"/>
   <rect x="26" y="54" width="44" height="5" rx="2.5" fill="#22c55e"/>
   <g transform="translate(24 62)">
     <circle cx="0" cy="0" r="11" fill="#f59e0b" stroke="#fde047" stroke-width="1.4"/>
