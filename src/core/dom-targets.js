@@ -81,26 +81,40 @@ export function dtFindChatBubbles(config) {
     return dtSafeQueryAll(custom).filter((el) => !dtIsInsideInjectorUi(el));
   }
   const found = new Set();
-  const selectors = [
+  const tightSelectors = [
     '[data-testid="user-message-bubble"]',
-    '[data-testid="user-message"]',
+    '.agy-user-bubble-frame',
     '[data-agy-chat-bubble]',
-    '[data-message-author="user"]',
-    '[data-message-role="user"]',
     '.user-message-bubble'
   ];
-  for (const sel of selectors) {
+  for (const sel of tightSelectors) {
     for (const el of dtSafeQueryAll(sel)) {
       if (dtIsInsideInjectorUi(el)) continue;
       const frame =
         el.getAttribute('data-testid') === 'user-message-bubble'
-          ? el.closest('[class*="bg-card-border"]') || el
+          ? el.closest('.agy-user-bubble-frame, [class*="bg-card-border"]') || el
           : el;
       found.add(frame);
     }
   }
+
+  const tightMatches = Array.from(found);
+  const fallbackSelectors = [
+    '[data-testid="user-message"]',
+    '[data-message-author="user"]',
+    '[data-message-role="user"]'
+  ];
+  for (const sel of fallbackSelectors) {
+    for (const el of dtSafeQueryAll(sel)) {
+      if (dtIsInsideInjectorUi(el)) continue;
+      if (!tightMatches.some((inner) => el.contains(inner))) {
+        found.add(el);
+      }
+    }
+  }
+
   const raw = Array.from(found);
-  return raw.filter((el) => !raw.some((other) => other !== el && other.contains(el)));
+  return raw.filter((el) => !raw.some((other) => other !== el && el.contains(other)));
 }
 
 export function dtFindChatInputContainers(config) {

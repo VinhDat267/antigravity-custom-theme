@@ -345,6 +345,50 @@ export function buildStylesheet(config, customMedia = {}) {
         -webkit-backdrop-filter: none !important;
       }
 
+      /* Eliminate stacked alpha bands and Monokai fade streaks */
+      .agy-shell .bg-sidebar .bg-sidebar:not([style*="position: sticky"]) {
+        background: transparent !important;
+        background-color: transparent !important;
+      }
+      .agy-shell [data-testid="conversation-list-sidebar"] [style*="position: sticky"] {
+        background: rgba(${overlayRgb}, ${Math.min(0.92, sidebarAlpha * 0.88).toFixed(3)}) !important;
+      }
+      .agy-shell .pointer-events-none.bottom-0[style*="linear-gradient"],
+      .agy-shell .pointer-events-none[style*="var(--background)"],
+      .agy-shell .pointer-events-none[style*="var(--shell-canvas)"],
+      .agy-shell [data-testid="right-cluster-fade"],
+      .agy-shell [class*="bg-[var(--shell-canvas)]"] {
+        background: transparent !important;
+        background-color: transparent !important;
+        background-image: none !important;
+      }
+      .agy-shell .agy-sidebar-row[data-selected="true"],
+      .agy-shell .agy-sidebar-row.bg-sidebar-secondary,
+      .agy-shell .agy-sidebar-row:hover {
+        background: color-mix(in srgb, ${accent} 14%, rgba(${overlayRgb}, ${Math.min(0.88, sidebarAlpha + 0.16).toFixed(3)})) !important;
+      }
+      html.agy-ct-active body.agy-ct-active .agy-shell .bg-sidebar :is(.agy-sidebar-row, [data-testid="conversation-row-history"]) .agy-row-actions,
+      .agy-shell .agy-row-actions {
+        background: rgba(${overlayRgb}, 0.88) !important;
+        background-image: none !important;
+        border: none !important;
+        border-radius: 6px !important;
+        padding-left: 6px !important;
+        padding-right: 4px !important;
+      }
+      .agy-shell [data-testid="worked-for-collapsible"] {
+        background: transparent !important;
+      }
+      .agy-shell [data-testid="worked-for-collapsible"]:hover {
+        background: color-mix(in srgb, ${accent} 12%, rgba(${overlayRgb}, 0.42)) !important;
+      }
+      .agy-shell [class*="group-hover/terminal-card"][style*="linear-gradient"] {
+        background: rgba(${overlayRgb}, 0.9) !important;
+        background-image: none !important;
+        border-radius: 6px !important;
+        padding-left: 6px !important;
+      }
+
       .agy-shell [class*="@container/titlebar"],
       [data-agy-mock-shell] [data-agy-topbar] {
         background: rgba(${overlayRgb}, ${(headerAlpha * 0.45).toFixed(3)}) !important;
@@ -449,6 +493,14 @@ export function buildStylesheet(config, customMedia = {}) {
         border-radius: ${bubble.radius} !important;
         overflow: visible !important;
       }
+      .agy-ct-bubble-styled > .agy-user-bubble,
+      .agy-ct-bubble-styled [data-testid="user-message-bubble"] {
+        background: transparent !important;
+        background-color: transparent !important;
+        background-image: none !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
       .agy-ct-bubble-styled * {
         color: inherit;
       }
@@ -483,6 +535,12 @@ export function buildStylesheet(config, customMedia = {}) {
         border-radius: ${inputPreset.radius} !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
+      }
+      .agy-ct-input-styled > .surface-composer-card,
+      .agy-ct-input-styled .surface-composer-card {
+        background: transparent !important;
+        background-color: transparent !important;
+        background-image: none !important;
       }
       .agy-ct-input-styled:focus-within {
         border-color: ${inputPreset.focusBorder} !important;

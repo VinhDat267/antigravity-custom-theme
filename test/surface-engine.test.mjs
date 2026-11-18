@@ -206,3 +206,18 @@ test('SurfaceEngine observes late-opened [data-browser-hole] elements and notifi
     globalThis.requestAnimationFrame = origRaf;
   }
 });
+
+test('buildStylesheet neutralizes Monokai bottom/header fades, nested sidebar bands, inner composer/bubble cards, and worked-for/row-actions overlays', () => {
+  const css = buildStylesheet({ ...DEFAULT_CONFIG, enabled: true }, {});
+  assertBalancedCssBraces(css);
+  assert.ok(!/backdrop-filter:\s*blur\(/i.test(css));
+
+  assert.ok(css.includes('.pointer-events-none.bottom-0[style*="linear-gradient"]'));
+  assert.ok(css.includes('[data-testid="right-cluster-fade"]'));
+  assert.ok(css.includes('.agy-ct-input-styled .surface-composer-card'));
+  assert.ok(css.includes('.agy-ct-bubble-styled [data-testid="user-message-bubble"]'));
+  assert.ok(css.includes('.agy-shell .agy-row-actions'));
+  assert.ok(css.includes('.agy-shell .bg-sidebar .bg-sidebar'));
+  assert.ok(css.includes('[data-testid="worked-for-collapsible"]:hover'));
+});
+
