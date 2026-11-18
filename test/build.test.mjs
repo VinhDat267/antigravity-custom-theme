@@ -92,3 +92,52 @@ test('buildBundle compiles ordered modules and optional wallpaper files into a v
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('real repo bundle compiles cleanly and aborts mounting on non-shell pages', async () => {
+  const repoRoot = path.resolve(import.meta.dirname, '..');
+  const tmpOut = path.join(os.tmpdir(), `agy-real-bundle-${Date.now()}.js`);
+  try {
+    const res = buildBundle({ rootDir: repoRoot, outFile: tmpOut });
+    assert.ok(res.sizeBytes > 10_000, 'Expected substantial compiled bundle');
+
+    const listeners = {};
+    const mockDoc = {
+      readyState: 'complete',
+      body: {
+        classList: { add() {}, remove() {} },
+        prepend() {},
+        appendChild() {},
+        contains: () => false
+      },
+      documentElement: {
+        classList: { add() {}, remove() {} },
+        style: { setProperty() {}, removeProperty() {} }
+      },
+      head: { appendChild() {} },
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      getElementById: () => null,
+      addEventListener: (k, fn) => {
+        listeners[k] = fn;
+      },
+      removeEventListener: () => {}
+    };
+    const mockWin = {
+      innerWidth: 1280,
+      innerHeight: 720,
+      devicePixelRatio: 1,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      document: mockDoc
+    };
+    mockWin.window = mockWin;
+    mockWin.globalThis = mockWin;
+
+    new vm.Script(res.code).runInNewContext(mockWin);
+    assert.equal(typeof mockWin.__AGY_CUSTOM_THEME__, 'object');
+    assert.equal(mockWin.__AGY_CUSTOM_THEME__.isMounted, false);
+  } finally {
+    fs.rmSync(tmpOut, { force: true });
+  }
+});
+
