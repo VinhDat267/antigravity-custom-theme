@@ -123,7 +123,7 @@ test('One Piece wallpapers, mascots, and stickers provide valid SVG markup, slug
     assert.ok(!/(<animate|<style)/i.test(decodeURIComponent(uri)), `Wallpaper ${id} must not embed <animate> or <style> tags`);
   }
 
-  for (const petId of ['chopper-chibi', 'thousand-sunny', 'luffy-chibi', 'luffy-gear5']) {
+  for (const petId of ['chopper-chibi', 'thousand-sunny', 'luffy-chibi', 'luffy-gear5', 'luffy-anime', 'luffy-gear5-anime']) {
     assert.ok(MASCOT_TEMPLATES[petId], `Missing mascot ${petId}`);
     const petSvg = renderMascotSvg(petId, 'pet');
     const bubbleSvg = renderMascotSvg(petId, 'bubble');
@@ -135,6 +135,8 @@ test('One Piece wallpapers, mascots, and stickers provide valid SVG markup, slug
     assert.ok(!/url\(#|\bid="/.test(bubbleSvg), `Inline mascot ${petId} (bubble) must avoid static <defs> IDs so hidden Settings FX previews never break visible SVG fills`);
     assert.ok(!/(<animate|<style)/i.test(petSvg), `Inline mascot ${petId} must avoid <animate> and <style> tags`);
   }
+  assert.equal(MASCOT_TEMPLATES['luffy-anime'].aspect, 0.62);
+  assert.equal(MASCOT_TEMPLATES['luffy-gear5-anime'].aspect, 0.64);
 
   for (const stId of ['mu-rom', 'jolly-roger', 'log-pose']) {
     assert.ok(STICKER_TEMPLATES[stId], `Missing sticker ${stId}`);

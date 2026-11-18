@@ -210,7 +210,7 @@ function csSanitizeConfigCore(rawObj) {
     pet: {
       enabled: typeof src.pet?.enabled === 'boolean' ? src.pet.enabled : d.pet.enabled,
       id: csCleanString(src.pet?.id, d.pet.id),
-      size: csClamp(src.pet?.size, 44, 160, d.pet.size),
+      size: csClamp(src.pet?.size, 44, 240, d.pet.size),
       opacity: csClamp(src.pet?.opacity, 20, 100, d.pet.opacity),
       mode: validModes.has(src.pet?.mode) ? src.pet.mode : d.pet.mode,
       pos: {

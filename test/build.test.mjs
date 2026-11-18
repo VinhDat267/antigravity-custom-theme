@@ -206,4 +206,58 @@ test('buildBundle overrides real wpSvgUri entries cleanly and stripDeletedWallpa
   }
 });
 
+test('buildBundle embeds assets/pets/*.webp sprites into MASCOT_TEMPLATES without corrupting IIFE', () => {
+  const repoRoot = path.resolve(import.meta.dirname, '..');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-pets-embed-'));
+  try {
+    fs.cpSync(path.join(repoRoot, 'src'), path.join(tmpDir, 'src'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, 'assets', 'pets'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'assets', 'pets', 'luffy-anime.webp'), Buffer.from('LUFFYWEBP'));
+    fs.writeFileSync(path.join(tmpDir, 'assets', 'pets', 'luffy-gear5-anime.webp'), Buffer.from('GEAR5WEBP'));
+
+    const res = buildBundle({
+      rootDir: tmpDir,
+      outFile: path.join(tmpDir, 'dist', 'antigravity-theme.js')
+    });
+
+    new vm.Script(res.code);
+    const captureCode = res.code.replace(
+      'controller.init();',
+      'globalThis.__CAPTURED_PETS__ = MASCOT_TEMPLATES; controller.init();'
+    );
+    const sandbox = {
+      document: {
+        readyState: 'complete',
+        body: { classList: { add() {}, remove() {} }, prepend() {}, appendChild() {}, contains: () => false },
+        documentElement: { classList: { add() {}, remove() {} }, style: { setProperty() {}, removeProperty() {} } },
+        head: { appendChild() {} },
+        querySelector: () => null,
+        querySelectorAll: () => [],
+        getElementById: () => null,
+        addEventListener: () => {},
+        removeEventListener: () => {}
+      },
+      innerWidth: 1280,
+      innerHeight: 720,
+      devicePixelRatio: 1,
+      addEventListener: () => {},
+      removeEventListener: () => {}
+    };
+    sandbox.window = sandbox;
+    sandbox.globalThis = sandbox;
+    new vm.Script(captureCode).runInNewContext(sandbox);
+
+    assert.equal(
+      sandbox.__CAPTURED_PETS__['luffy-anime']?.embeddedDataUri,
+      `data:image/webp;base64,${Buffer.from('LUFFYWEBP').toString('base64')}`
+    );
+    assert.equal(
+      sandbox.__CAPTURED_PETS__['luffy-gear5-anime']?.embeddedDataUri,
+      `data:image/webp;base64,${Buffer.from('GEAR5WEBP').toString('base64')}`
+    );
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 

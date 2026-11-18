@@ -336,6 +336,15 @@ test('ThemeStudio Chat tab renders readable dark text inside light input preset 
     const darkPreview = findFirst(darkBtn, (el) => el.tagName === 'DIV' && el.textContent === 'Ask anything...');
     assert.ok(darkPreview, 'Expected Ask anything... preview in Sunny Sunset Deck');
     assert.ok(darkPreview.style.cssText.includes('#9ca3af') || darkPreview.style.cssText.includes('#cbd5e1'), 'Dark input preview should keep light muted text');
+
+    studio.open('fx');
+    const fxRoot = studio.getElement();
+    const petSizeSlider = findFirst(
+      fxRoot,
+      (el) => el.tagName === 'INPUT' && el.getAttribute?.('type') === 'range' && String(el.getAttribute?.('min')) === '44'
+    );
+    assert.ok(petSizeSlider, 'Expected pet size range slider in FX tab');
+    assert.equal(String(petSizeSlider.getAttribute('max')), '240', 'Pet size slider max must be 240 for full-body models');
   } finally {
     globalThis.document = origDoc;
   }

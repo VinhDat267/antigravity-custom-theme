@@ -798,8 +798,20 @@ export class ThemeStudio {
     modeSelect.addEventListener('change', (e) => this.onPatch({ pet: { mode: e.target.value } }));
 
     const petCards = Object.values(MASCOT_TEMPLATES).map((m) => {
-      const iconBox = tsEl('div', { style: 'width:46px;height:46px;margin:0 auto;' });
-      iconBox.innerHTML = renderMascotSvg(m.id, 'pet');
+      const iconBox = tsEl('div', {
+        style: 'width:46px;height:46px;margin:0 auto;display:flex;align-items:center;justify-content:center;'
+      });
+      if (m.embeddedDataUri) {
+        iconBox.appendChild(
+          tsEl('img', {
+            src: m.embeddedDataUri,
+            alt: lang === 'en' ? m.nameEn : m.name,
+            style: 'width:100%;height:100%;object-fit:contain;pointer-events:none;'
+          })
+        );
+      } else {
+        iconBox.innerHTML = renderMascotSvg(m.id, 'pet');
+      }
       return tsEl(
         'button',
         {
@@ -853,7 +865,7 @@ export class ThemeStudio {
       this.makeSliderRow(
         t(lang, 'petSize'),
         44,
-        160,
+        240,
         2,
         cfg.pet.size,
         'px',

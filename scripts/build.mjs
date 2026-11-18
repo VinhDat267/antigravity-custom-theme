@@ -79,29 +79,42 @@ export function stripDeletedWallpapers(bundleSource, config) {
   return out;
 }
 
-function collectDiskWallpapers(wallpapersDir) {
+function collectDiskAssets(dirPath) {
   const map = {};
-  if (!fs.existsSync(wallpapersDir)) return map;
-  for (const entry of fs.readdirSync(wallpapersDir, { withFileTypes: true })) {
+  if (!fs.existsSync(dirPath)) return map;
+  for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
     if (!entry.isFile()) continue;
     const ext = path.extname(entry.name).toLowerCase();
     const mime = WALLPAPER_MIME_MAP[ext];
     if (!mime) continue;
     const id = path.basename(entry.name, ext);
     if (!/^[a-z0-9-]+$/i.test(id)) continue;
-    const b64 = fs.readFileSync(path.join(wallpapersDir, entry.name)).toString('base64');
+    const b64 = fs.readFileSync(path.join(dirPath, entry.name)).toString('base64');
     map[id] = `data:${mime};base64,${b64}`;
   }
   return map;
+}
+
+function injectEmbeddedDataUris(sourceCode, assetMap) {
+  let out = sourceCode;
+  for (const [id, dataUri] of Object.entries(assetMap)) {
+    const pattern = new RegExp(
+      `(id:\\s*['"]${id}['"][\\s\\S]*?embeddedDataUri:\\s*)(?:'[^']*'|"[^"]*"|wpSvgUri\\(\\s*\`[^\`]*\`\\s*\\))`
+    );
+    out = out.replace(pattern, (_m, prefix) => `${prefix}'${dataUri}'`);
+  }
+  return out;
 }
 
 export function buildBundle({ rootDir = DEFAULT_ROOT, outFile, moduleFiles = MODULE_ORDER } = {}) {
   const resolvedRoot = path.resolve(rootDir);
   const srcDir = path.join(resolvedRoot, 'src');
   const wallpapersDir = path.join(resolvedRoot, 'assets', 'wallpapers');
+  const petsDir = path.join(resolvedRoot, 'assets', 'pets');
   const targetOut = outFile ? path.resolve(outFile) : path.join(resolvedRoot, 'dist', 'antigravity-theme.js');
 
-  const diskWallpapers = collectDiskWallpapers(wallpapersDir);
+  const diskWallpapers = collectDiskAssets(wallpapersDir);
+  const diskPets = collectDiskAssets(petsDir);
 
   const parts = [
     '/**',
@@ -117,12 +130,9 @@ export function buildBundle({ rootDir = DEFAULT_ROOT, outFile, moduleFiles = MOD
     let code = fs.readFileSync(full, 'utf8');
 
     if (rel === 'assets/wallpapers-manifest.js') {
-      for (const [id, dataUri] of Object.entries(diskWallpapers)) {
-        const pattern = new RegExp(
-          `(id:\\s*['"]${id}['"][\\s\\S]*?embeddedDataUri:\\s*)(?:'[^']*'|"[^"]*"|wpSvgUri\\(\\s*\`[^\`]*\`\\s*\\))`
-        );
-        code = code.replace(pattern, (_m, prefix) => `${prefix}'${dataUri}'`);
-      }
+      code = injectEmbeddedDataUris(code, diskWallpapers);
+    } else if (rel === 'assets/mascots.js') {
+      code = injectEmbeddedDataUris(code, diskPets);
     }
 
     parts.push(`\n// ===== ${rel} =====`);

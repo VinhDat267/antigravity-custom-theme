@@ -373,6 +373,60 @@ export const MASCOT_TEMPLATES = {
   <circle cx="77" cy="20" r="2.8" fill="#fef08a" class="agy-ct-anim-twinkle"/>
 </svg>`;
     }
+  },
+  'luffy-anime': {
+    id: 'luffy-anime',
+    name: 'Luffy Anime (Toàn thân)',
+    nameEn: 'Anime Luffy (Full Body)',
+    accent: '#d7474b',
+    aspect: 0.62,
+    embeddedDataUri: '',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 110 176" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M24 58C14 70 8 102 12 140L32 132L36 62Z" fill="#111827" stroke="#020617" stroke-width="1.6"/>
+  <path d="M84 58C96 70 102 102 98 140L78 132L74 62Z" fill="#111827" stroke="#020617" stroke-width="1.6"/>
+  <path d="M36 96H74L79 124L61 126L55 112L49 126L31 124Z" fill="#1d4ed8" stroke="#0f172a" stroke-width="1.5"/>
+  <path d="M40 120H50V158H38Z" fill="#f7c59f" stroke="#7c2d12" stroke-width="1.2"/>
+  <path d="M60 120H70L74 158H62Z" fill="#f7c59f" stroke="#7c2d12" stroke-width="1.2"/>
+  <path d="M42 54H68L70 95H40Z" fill="#f7c59f"/>
+  <path d="M48 64L62 79M62 64L48 79" stroke="#a65b46" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M37 54H48L46 94H34Z" fill="#dc2626" stroke="#7f1d1d" stroke-width="1.3"/>
+  <path d="M62 54H73L76 94H64Z" fill="#dc2626" stroke="#7f1d1d" stroke-width="1.3"/>
+  <path d="M38 90H72L73 99H37Z" fill="#facc15" stroke="#854d0e" stroke-width="1.2"/>
+  <circle cx="55" cy="38" r="15" fill="#f7c59f" stroke="#451a03" stroke-width="1.3"/>
+  <path d="M40 35C40 24 47 20 55 20C63 20 70 24 70 35C66 30 62 30 58 34L55 26L50 34C46 30 43 31 40 35Z" fill="#0f172a"/>
+  <ellipse cx="55" cy="24" rx="28" ry="6.5" fill="#facc15" stroke="#713f12" stroke-width="1.5"/>
+  <path d="M38 22C38 11 45 6 55 6C65 6 72 11 72 22Z" fill="#fde047" stroke="#713f12" stroke-width="1.4"/>
+  <path d="M38 18H72V22H38Z" fill="#dc2626"/>
+</svg>`;
+    }
+  },
+  'luffy-gear5-anime': {
+    id: 'luffy-gear5-anime',
+    name: 'Luffy Gear 5 (Anime)',
+    nameEn: 'Gear 5 Luffy (Anime)',
+    accent: '#e9d5ff',
+    aspect: 0.64,
+    embeddedDataUri: '',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 112 176" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 68C10 58 12 42 24 39C30 28 42 28 48 36H64C70 28 82 28 88 39C100 42 102 58 90 68C83 74 75 68 70 62H42C37 68 29 74 22 68Z" fill="#ffffff" stroke="#9333ea" stroke-width="1.6"/>
+  <path d="M38 96H74L80 120L61 122L55 108L49 122L32 119Z" fill="#f8fafc" stroke="#64748b" stroke-width="1.4"/>
+  <path d="M40 118H50L44 156H34Z" fill="#fde6d2" stroke="#64748b" stroke-width="1.2"/>
+  <path d="M62 118L76 138L84 148L76 154L64 140L56 120Z" fill="#fde6d2" stroke="#64748b" stroke-width="1.2"/>
+  <path d="M43 56H69L67 96H45Z" fill="#fde6d2"/>
+  <path d="M49 65L63 80M63 65L49 80" stroke="#c27a66" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M38 56H48L46 95H36Z" fill="#ffffff" stroke="#64748b" stroke-width="1.3"/>
+  <path d="M64 56H74L76 95H66Z" fill="#ffffff" stroke="#64748b" stroke-width="1.3"/>
+  <path d="M39 91H73L74 100H38Z" fill="#a855f7" stroke="#581c87" stroke-width="1.2"/>
+  <circle cx="56" cy="39" r="14.5" fill="#fde6d2" stroke="#475569" stroke-width="1.3"/>
+  <path d="M36 37C31 27 36 16 45 17C48 8 60 7 65 15C73 12 80 20 76 30C80 34 76 41 70 38Z" fill="#ffffff" stroke="#7c3aed" stroke-width="1.5"/>
+  <circle cx="50" cy="38" r="2.2" fill="#e11d48"/><circle cx="62" cy="38" r="2.2" fill="#e11d48"/>
+  <circle cx="88" cy="24" r="2.8" fill="#fef08a" class="agy-ct-anim-twinkle"/>
+</svg>`;
+    }
   }
 };
 

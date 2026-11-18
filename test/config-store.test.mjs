@@ -109,6 +109,8 @@ test('sanitizeImportedConfig clamps bounds, strips local OS paths, and neutraliz
   assert.equal(sanitized.pet.mode, 'float');
   assert.equal(sanitized.pet.size, 44);
   assert.equal(sanitized.pet.opacity, 100);
+  assert.equal(sanitizeImportedConfig({ pet: { size: 220 } }).pet.size, 220);
+  assert.equal(sanitizeImportedConfig({ pet: { size: 999 } }).pet.size, 240);
   assert.ok(!/<\/style/i.test(sanitized.customCss));
   assert.equal(sanitized.unknownDangerousProp, undefined);
 
