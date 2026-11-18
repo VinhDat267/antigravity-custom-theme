@@ -452,9 +452,10 @@ export async function clearUnusedMedia(keepKeys = [], envWindow) {
 export async function loadCustomMediaMap(envWindow) {
   const win = csResolveWindow(envWindow);
   const result = {};
+  let readDb = null;
   try {
-    const db = await csOpenMediaDb(win);
-    const tx = db.transaction(MEDIA_STORE_NAME, 'readonly');
+    readDb = await csOpenMediaDb(win);
+    const tx = readDb.transaction(MEDIA_STORE_NAME, 'readonly');
     const store = tx.objectStore(MEDIA_STORE_NAME);
     await Promise.all(
       MEDIA_SLOTS.map(
@@ -471,9 +472,12 @@ export async function loadCustomMediaMap(envWindow) {
           })
       )
     );
-    db.close();
   } catch {
     // Ignore when IndexedDB unavailable
+  } finally {
+    try {
+      readDb?.close?.();
+    } catch {}
   }
 
   const boot = win?.__AGY_THEME_BOOT__;
@@ -499,19 +503,24 @@ export async function loadCustomMediaMap(envWindow) {
     }
 
     if (pendingPuts.length > 0 || pendingDeletes.length > 0) {
+      let writeDb = null;
       try {
-        const db = await csOpenMediaDb(win);
+        writeDb = await csOpenMediaDb(win);
         await new Promise((resolve, reject) => {
-          const tx = db.transaction(MEDIA_STORE_NAME, 'readwrite');
+          const tx = writeDb.transaction(MEDIA_STORE_NAME, 'readwrite');
           const store = tx.objectStore(MEDIA_STORE_NAME);
           for (const [k, v] of pendingPuts) store.put(v, k);
           for (const k of pendingDeletes) store.delete(k);
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
+          tx.onabort = () => reject(tx.error || new Error('IndexedDB transaction aborted'));
         });
-        db.close();
       } catch {
         // Ignore when IndexedDB unavailable
+      } finally {
+        try {
+          writeDb?.close?.();
+        } catch {}
       }
     }
 

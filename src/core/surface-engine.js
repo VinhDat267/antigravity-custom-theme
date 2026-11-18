@@ -26,11 +26,11 @@ const SE_STYLE_ID = 'agy-ct-styles';
 function minifyCssBlock(css) {
   const strings = [];
   const masked = String(css || '')
-    .replace(/\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\//g, '')
     .replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, (m) => {
       const idx = strings.push(m) - 1;
       return `\x01S${idx}\x02`;
-    });
+    })
+    .replace(/\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\//g, '');
 
   const compacted = masked
     .replace(/\s+/g, ' ')
@@ -1569,7 +1569,10 @@ export class SurfaceEngine {
     if (this.onVisibilityChange) document.removeEventListener?.('visibilitychange', this.onVisibilityChange);
     document.documentElement?.classList?.remove?.('agy-ct-idle-paused');
     this.observer?.disconnect();
+    this.observer = null;
     this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    this.observedHoleEl = null;
     this.cancelPicker();
     this.lastCssText = '';
 
