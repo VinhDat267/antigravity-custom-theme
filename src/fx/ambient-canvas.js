@@ -16,6 +16,9 @@ export class AmbientCanvasEngine {
     this.sparks = [];
     this.rafId = null;
     this.lastTs = 0;
+    this.lastDrawTs = 0;
+    this.dpr = 1;
+    this.spriteCache = new Map();
     this.width = 0;
     this.height = 0;
     this.destroyed = false;
@@ -37,11 +40,40 @@ export class AmbientCanvasEngine {
   resize() {
     if (!this.canvas || !this.win) return;
     const dpr = Math.min(this.win.devicePixelRatio || 1, 1.5);
+    this.dpr = dpr;
     this.width = this.win.innerWidth || 1280;
     this.height = this.win.innerHeight || 720;
     this.canvas.width = Math.floor(this.width * dpr);
     this.canvas.height = Math.floor(this.height * dpr);
     this.ctx?.setTransform?.(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  getGlowSprite(hexColor) {
+    if (this.spriteCache.has(hexColor)) {
+      return this.spriteCache.get(hexColor);
+    }
+    if (typeof this.doc?.createElement !== 'function') {
+      return null;
+    }
+    const off = this.doc.createElement('canvas');
+    off.width = 32;
+    off.height = 32;
+    const sctx = off.getContext?.('2d');
+    if (!sctx?.createRadialGradient) {
+      return null;
+    }
+    const m = /^#([0-9a-fA-F]{6})$/.exec(String(hexColor || ''));
+    const r = m ? parseInt(m[1].slice(0, 2), 16) : 254;
+    const g = m ? parseInt(m[1].slice(2, 4), 16) : 243;
+    const b = m ? parseInt(m[1].slice(4, 6), 16) : 199;
+    const grad = sctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 1)`);
+    grad.addColorStop(0.28, `rgba(${r}, ${g}, ${b}, 0.55)`);
+    grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+    sctx.fillStyle = grad;
+    sctx.fillRect(0, 0, 32, 32);
+    this.spriteCache.set(hexColor, off);
+    return off;
   }
 
   setHoleClip(clipPath) {
@@ -188,7 +220,7 @@ export class AmbientCanvasEngine {
     if (!rafFn) return;
     const tick = (ts) => {
       if (this.destroyed || this.mode === 'none') return;
-      if (ts - this.lastTs >= 24) {
+      if (ts - this.lastTs >= 14) {
         this.lastTs = ts;
         this.drawFrame(ts);
       }
@@ -205,6 +237,7 @@ export class AmbientCanvasEngine {
       cancelFn?.(this.rafId);
       this.rafId = null;
     }
+    this.lastDrawTs = 0;
   }
 
   clear() {
@@ -216,136 +249,160 @@ export class AmbientCanvasEngine {
     if (!ctx) return;
     const w = this.width;
     const h = this.height;
+    const dpr = this.dpr || 1;
+    const rawDt = this.lastDrawTs ? (ts - this.lastDrawTs) / 16.667 : 1;
+    const dt = Math.max(0.25, Math.min(2.2, rawDt));
+    this.lastDrawTs = ts;
+
     ctx.clearRect(0, 0, w, h);
 
     if (this.mode === 'thunder-rain' || this.mode === 'rain') {
+      const isThunder = this.mode === 'thunder-rain';
       ctx.lineCap = 'round';
       ctx.lineWidth = 1;
-      for (const p of this.particles) {
-        ctx.strokeStyle =
-          this.mode === 'thunder-rain'
-            ? `rgba(210, 224, 245, ${p.alpha})`
-            : `rgba(190, 215, 255, ${p.alpha})`;
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x + p.vx * 1.4, p.y + p.len);
-        ctx.stroke();
 
-        p.x += p.vx;
-        p.y += p.vy;
+      // Batch raindrops into 2 opacity passes instead of 100+ individual stroke() calls
+      ctx.strokeStyle = isThunder ? 'rgba(210, 224, 245, 0.2)' : 'rgba(190, 215, 255, 0.18)';
+      ctx.beginPath();
+      for (const p of this.particles) {
+        if (p.alpha < 0.26) {
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x + p.vx * 1.4, p.y + p.len);
+        }
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = isThunder ? 'rgba(210, 224, 245, 0.34)' : 'rgba(190, 215, 255, 0.32)';
+      ctx.beginPath();
+      for (const p of this.particles) {
+        if (p.alpha >= 0.26) {
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x + p.vx * 1.4, p.y + p.len);
+        }
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
         if (p.y > h + 20 || p.x < -80) {
           Object.assign(p, this.createParticle(w, h, false));
         }
       }
+      ctx.stroke();
 
-      if (this.mode === 'thunder-rain') {
+      if (isThunder) {
         this.maybeSpawnLightningSpark(w, h);
         for (let i = this.sparks.length - 1; i >= 0; i -= 1) {
           const sp = this.sparks[i];
-          ctx.save();
-          ctx.strokeStyle = `rgba(253, 224, 71, ${sp.life * 0.85})`;
-          ctx.shadowColor = '#facc15';
-          ctx.shadowBlur = 10;
-          ctx.lineWidth = 1.6;
           ctx.beginPath();
           sp.pts.forEach((pt, idx) => {
             if (idx === 0) ctx.moveTo(pt.x, pt.y);
             else ctx.lineTo(pt.x, pt.y);
           });
+          ctx.lineWidth = 4.2;
+          ctx.strokeStyle = `rgba(250, 204, 21, ${(sp.life * 0.24).toFixed(3)})`;
           ctx.stroke();
-          ctx.restore();
-          sp.life -= sp.decay;
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = `rgba(254, 240, 138, ${(sp.life * 0.9).toFixed(3)})`;
+          ctx.stroke();
+          sp.life -= sp.decay * dt;
           if (sp.life <= 0) this.sparks.splice(i, 1);
         }
+        ctx.lineWidth = 1;
       }
       return;
     }
 
     if (this.mode === 'sakura') {
       for (const p of this.particles) {
-        p.swayPhase += 0.03;
-        p.x += p.vx + Math.sin(p.swayPhase) * 0.65;
-        p.y += p.vy;
-        p.angle += p.spin;
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.angle);
+        p.swayPhase += 0.03 * dt;
+        p.x += (p.vx + Math.sin(p.swayPhase) * 0.65) * dt;
+        p.y += p.vy * dt;
+        p.angle += p.spin * dt;
+
+        const cos = Math.cos(p.angle) * dpr;
+        const sin = Math.sin(p.angle) * dpr;
+        ctx.setTransform(cos, sin, -sin, cos, p.x * dpr, p.y * dpr);
         ctx.fillStyle = `rgba(249, 168, 212, ${p.alpha})`;
         ctx.beginPath();
         ctx.ellipse(0, 0, p.size, p.size * 0.55, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
         if (p.y > h + 20 || p.x > w + 40) {
           Object.assign(p, this.createParticle(w, h, false));
         }
       }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       return;
     }
 
     if (this.mode === 'snow') {
+      ctx.fillStyle = '#f8fafc';
       for (const p of this.particles) {
-        p.swayPhase += 0.02;
-        p.x += p.vx + Math.sin(p.swayPhase) * 0.4;
-        p.y += p.vy;
-        ctx.save();
+        p.swayPhase += 0.02 * dt;
+        p.x += (p.vx + Math.sin(p.swayPhase) * 0.4) * dt;
+        p.y += p.vy * dt;
         ctx.globalAlpha = p.alpha;
-        ctx.fillStyle = '#f8fafc';
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
         if (p.y > h + 14) {
           Object.assign(p, this.createParticle(w, h, false));
         }
       }
+      ctx.globalAlpha = 1;
       return;
     }
 
+    const canDrawImg = typeof ctx.drawImage === 'function';
     if (this.mode === 'fireflies') {
       for (const p of this.particles) {
-        p.x += p.vx + Math.sin(ts * 0.001 + p.phase) * 0.25;
-        p.y += p.vy + Math.cos(ts * 0.0012 + p.phase) * 0.2;
+        p.x += (p.vx + Math.sin(ts * 0.001 + p.phase) * 0.25) * dt;
+        p.y += (p.vy + Math.cos(ts * 0.0012 + p.phase) * 0.2) * dt;
         if (p.x < 0) p.x = w;
         if (p.x > w) p.x = 0;
         if (p.y < 0) p.y = h;
         if (p.y > h) p.y = 0;
         const glow = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(ts * 0.003 + p.phase));
-        ctx.save();
+        const sprite = canDrawImg ? this.getGlowSprite(p.hue) : null;
         ctx.globalAlpha = glow;
-        ctx.fillStyle = p.hue;
-        ctx.shadowColor = p.hue;
-        ctx.shadowBlur = 12;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        if (sprite) {
+          const drawSize = Math.max(14, p.r * 7);
+          ctx.drawImage(sprite, p.x - drawSize * 0.5, p.y - drawSize * 0.5, drawSize, drawSize);
+        } else {
+          ctx.fillStyle = p.hue;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
+      ctx.globalAlpha = 1;
       return;
     }
 
     for (const p of this.particles) {
-      p.x += p.vx;
-      p.y += p.vy;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
       if (p.y < -10) {
         p.y = h + 10;
         p.x = Math.random() * w;
       }
       const alpha = 0.25 + 0.65 * (0.5 + 0.5 * Math.sin(ts * 0.0025 + p.phase));
-      ctx.save();
+      const sprite = canDrawImg ? this.getGlowSprite(p.color) : null;
       ctx.globalAlpha = alpha;
-      ctx.fillStyle = p.color;
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur = 6;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      if (sprite) {
+        const drawSize = Math.max(10, p.r * 5.5);
+        ctx.drawImage(sprite, p.x - drawSize * 0.5, p.y - drawSize * 0.5, drawSize, drawSize);
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
+    ctx.globalAlpha = 1;
   }
 
   destroy() {
     this.destroyed = true;
     this.stopLoop();
+    this.spriteCache.clear();
     this.win?.removeEventListener?.('resize', this.onResize);
     this.doc?.removeEventListener?.('visibilitychange', this.onVisibility);
   }

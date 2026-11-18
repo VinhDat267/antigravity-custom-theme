@@ -69,6 +69,10 @@ export class StickerLayer {
     this.repositionAll();
   }
 
+  applyNodeCoords(node, x, y) {
+    node.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
+  }
+
   renderIntoNode(node, id, customUrl) {
     if (id === 'custom' && customUrl) {
       node.textContent = '';
@@ -113,8 +117,7 @@ export class StickerLayer {
         this.getBrowserHoleRect?.(),
         { width: window.innerWidth, height: window.innerHeight }
       );
-      node.style.left = `${clamped.x}px`;
-      node.style.top = `${clamped.y}px`;
+      this.applyNodeCoords(node, clamped.x, clamped.y);
     });
 
     const endDrag = () => {
@@ -173,8 +176,7 @@ export class StickerLayer {
         width: window.innerWidth,
         height: window.innerHeight
       });
-      node.style.left = `${clamped.x}px`;
-      node.style.top = `${clamped.y}px`;
+      this.applyNodeCoords(node, clamped.x, clamped.y);
     });
   }
 

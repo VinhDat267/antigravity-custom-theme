@@ -88,3 +88,139 @@ test('clampOutsideHole keeps pets and stickers outside active Split-Browser hole
   assert.equal(typeof PetStage, 'function');
   assert.equal(typeof StickerLayer, 'function');
 });
+
+test('PetStage positions via GPU translate3d and puts follow rAF loop to sleep once settled', () => {
+  const origDoc = globalThis.document;
+  const origWin = globalThis.window;
+  const rafQueue = [];
+  const winListeners = new Map();
+  const makeStubEl = () => ({
+    id: '',
+    className: '',
+    style: { left: '', top: '', transform: '', width: '', height: '', opacity: '', cssText: '' },
+    children: [],
+    setAttribute() {},
+    addEventListener() {},
+    remove() {},
+    append(...kids) {
+      this.children.push(...kids);
+    },
+    appendChild(k) {
+      this.children.push(k);
+    }
+  });
+
+  const bodyEl = {
+    contains: () => true,
+    appendChild() {}
+  };
+  globalThis.document = {
+    hidden: false,
+    body: bodyEl,
+    createElement: () => makeStubEl(),
+    addEventListener() {},
+    removeEventListener() {}
+  };
+  globalThis.window = {
+    innerWidth: 1200,
+    innerHeight: 800,
+    addEventListener: (k, fn) => winListeners.set(k, fn),
+    removeEventListener: (k) => winListeners.delete(k),
+    requestAnimationFrame: (fn) => {
+      rafQueue.push(fn);
+      return rafQueue.length;
+    },
+    cancelAnimationFrame: () => {}
+  };
+
+  try {
+    const pet = new PetStage({
+      getConfig: () => ({
+        enabled: true,
+        lang: 'en',
+        pet: { enabled: true, id: 'rong-ngoc', mode: 'follow', size: 80, opacity: 95, pos: { xPct: 20, yPct: 20 } }
+      }),
+      getCustomMedia: () => ({}),
+      getBrowserHoleRect: () => null,
+      onPositionSave: () => {}
+    });
+    pet.update();
+
+    assert.match(pet.stageEl.style.transform, /^translate3d\(\d+px,\s*\d+px,\s*0\)$/);
+    assert.equal(pet.stageEl.style.left, '');
+
+    // Settle target equal to current pos -> rAF loop must sleep (rafId === null)
+    pet.target = { ...pet.pos };
+    const tick = rafQueue.pop();
+    assert.ok(typeof tick === 'function');
+    tick();
+    assert.equal(pet.rafId, null, 'Follow mode must sleep rAF when mouse and pet are settled');
+
+    // Moving mouse wakes rAF loop again
+    winListeners.get('mousemove')?.({ clientX: 600, clientY: 300 });
+    assert.ok(pet.rafId !== null, 'Mousemove must wake follow rAF loop');
+    pet.destroy();
+  } finally {
+    globalThis.document = origDoc;
+    globalThis.window = origWin;
+  }
+});
+
+test('AmbientCanvasEngine draws fireflies and stardust without ctx.shadowBlur and respects delta-time', () => {
+  const ctxShadowSets = [];
+  const drawnImages = [];
+  const offCtx = {
+    createRadialGradient: () => ({ addColorStop() {} }),
+    fillStyle: '',
+    fillRect: () => {}
+  };
+  const mockDoc = {
+    hidden: false,
+    createElement: () => ({ width: 0, height: 0, getContext: () => offCtx }),
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+  const mockWin = {
+    innerWidth: 1200,
+    innerHeight: 800,
+    devicePixelRatio: 1,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    requestAnimationFrame: () => 1,
+    cancelAnimationFrame: () => {}
+  };
+  const mainCtx = {
+    setTransform: () => {},
+    clearRect: () => {},
+    beginPath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    stroke: () => {},
+    fill: () => {},
+    arc: () => {},
+    ellipse: () => {},
+    drawImage: (...args) => drawnImages.push(args),
+    save: () => {},
+    restore: () => {},
+    translate: () => {},
+    rotate: () => {},
+    globalAlpha: 1
+  };
+  Object.defineProperty(mainCtx, 'shadowBlur', {
+    get: () => 0,
+    set: (v) => {
+      if (v > 0) ctxShadowSets.push(v);
+    }
+  });
+  const canvas = { width: 0, height: 0, style: { clipPath: 'none' }, getContext: () => mainCtx };
+
+  const engine = new AmbientCanvasEngine(canvas, { envWindow: mockWin, envDocument: mockDoc });
+  engine.configure('fireflies', 60);
+  engine.drawFrame(100);
+  engine.configure('stardust', 60);
+  engine.drawFrame(132);
+
+  assert.equal(ctxShadowSets.length, 0, 'Glow modes must use cached radial sprite instead of ctx.shadowBlur');
+  assert.ok(drawnImages.length > 0, 'Expected cached glow sprite drawImage calls');
+  engine.destroy();
+});

@@ -178,9 +178,19 @@ export function dtFindSettingsContext(config) {
     if (customNav) return { navList: customNav, contentPane: guessPane(customNav) };
   }
 
+  const modalRoot = document.querySelector('.settings-modal-container, [role="dialog"], [data-agy-settings-content]');
+  if (!modalRoot) return null;
+
+  let containers = [];
+  try {
+    containers = Array.from(modalRoot.querySelectorAll('nav, aside, ul, div'));
+  } catch {
+    containers = [];
+  }
+
   let bestNav = null;
   let bestScore = 0;
-  for (const container of dtSafeQueryAll('nav, aside, ul, div')) {
+  for (const container of containers) {
     if (dtIsInsideInjectorUi(container)) continue;
     const clickables = Array.from(
       container.querySelectorAll(

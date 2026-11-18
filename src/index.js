@@ -36,6 +36,9 @@ class CustomThemeController {
     this.sidebarBtn = null;
     this.settingsBtn = null;
     this.domObserver = null;
+    this.domRafId = 0;
+    this.liveRafId = 0;
+    this.pendingLivePatch = null;
     this.initialized = false;
     this.isMounted = false;
     this.pendingOpenSettings = false;
@@ -73,7 +76,7 @@ class CustomThemeController {
       getConfig: () => this.config,
       getCustomMedia: () => this.customMedia,
       onPatch: (patch) => this.updateConfig(patch, true),
-      onLiveUpdate: (patch) => this.updateConfig(patch, false),
+      onLiveUpdate: (patch) => this.updateConfigLive(patch),
       onBundleApply: (id) => this.applyBundle(id),
       onReset: () => {
         this.config = resetConfig(this.config);
@@ -155,7 +158,17 @@ class CustomThemeController {
     });
 
     this.ensureLauncherAndSidebarHooks();
-    this.domObserver = new MutationObserver(() => this.ensureLauncherAndSidebarHooks());
+    this.domObserver = new MutationObserver((records) => {
+      if (Array.isArray(records) && records.length > 0 && records.every((r) => r.target?.closest?.('[data-agy-ct-injected="true"]'))) {
+        return;
+      }
+      if (this.domRafId) return;
+      const rafFn = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (fn) => setTimeout(fn, 0);
+      this.domRafId = rafFn(() => {
+        this.domRafId = 0;
+        this.ensureLauncherAndSidebarHooks();
+      });
+    });
     this.domObserver.observe(document.body, { childList: true, subtree: true });
     document.addEventListener('keydown', this.onKeyDown);
 
@@ -174,6 +187,16 @@ class CustomThemeController {
   }
 
   ensureLauncherAndSidebarHooks() {
+    if (
+      this.launcherBtn &&
+      document.body.contains(this.launcherBtn) &&
+      this.sidebarBtn &&
+      document.body.contains(this.sidebarBtn) &&
+      !document.querySelector('.settings-modal-container')
+    ) {
+      return;
+    }
+
     if (!this.launcherBtn || !document.body.contains(this.launcherBtn)) {
       document.getElementById('agy-ct-launcher')?.remove();
       const btn = document.createElement('button');
@@ -235,10 +258,28 @@ class CustomThemeController {
     }
   }
 
+  updateConfigLive(patch) {
+    this.pendingLivePatch = this.pendingLivePatch ? mergeConfig(this.pendingLivePatch, patch) : patch;
+    if (this.liveRafId) return;
+    const rafFn = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (fn) => setTimeout(fn, 0);
+    this.liveRafId = rafFn(() => {
+      this.liveRafId = 0;
+      if (!this.pendingLivePatch) return;
+      this.config = mergeConfig(this.config, this.pendingLivePatch);
+      this.pendingLivePatch = null;
+      this.refreshAll(false, { skipPrebake: true });
+    });
+  }
+
   updateConfig(patch, rerenderStudio = true) {
+    if (this.liveRafId && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(this.liveRafId);
+    }
+    this.liveRafId = 0;
+    this.pendingLivePatch = null;
     this.config = mergeConfig(this.config, patch);
     this.config = saveConfig(this.config);
-    this.refreshAll(rerenderStudio);
+    this.refreshAll(rerenderStudio, { skipPrebake: false });
   }
 
   applyBundle(bundleId) {
@@ -261,9 +302,9 @@ class CustomThemeController {
     this.updateConfig({ ...patch, activeBundleId: bundle.id, enabled: true }, true);
   }
 
-  refreshAll(rerenderStudio = false) {
+  refreshAll(rerenderStudio = false, { skipPrebake = false } = {}) {
     if (!this.isMounted) return;
-    this.surface?.apply(this.config, this.customMedia);
+    this.surface?.apply(this.config, this.customMedia, { skipPrebake });
 
     const holeState = this.surface?.getHoleState();
     this.ambient?.setHoleClip(holeState?.active ? holeState.clipPath : 'none');
@@ -343,6 +384,11 @@ class CustomThemeController {
 
   destroy() {
     document.removeEventListener('keydown', this.onKeyDown);
+    if (this.domRafId && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(this.domRafId);
+    if (this.liveRafId && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(this.liveRafId);
+    this.domRafId = 0;
+    this.liveRafId = 0;
+    this.pendingLivePatch = null;
     this.domObserver?.disconnect();
     this.domObserver = null;
     this.ambient?.destroy();

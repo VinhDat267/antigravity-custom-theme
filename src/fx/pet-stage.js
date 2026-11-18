@@ -95,6 +95,7 @@ export class PetStage {
     this.dragOffset = { x: 0, y: 0 };
     this.motionTimer = null;
     this.rafId = null;
+    this.activeMode = null;
     this.destroyed = false;
 
     this.onMouseMove = (e) => {
@@ -110,11 +111,25 @@ export class PetStage {
         );
         this.target.x = clamped.x;
         this.target.y = clamped.y;
+        if (!this.rafId && !this.destroyed && !(typeof document !== 'undefined' && document.hidden)) {
+          this.startStepLoop('follow');
+        }
+      }
+    };
+
+    this.onVisibilityChange = () => {
+      if (typeof document !== 'undefined' && document.hidden) {
+        this.stopMotion();
+      } else if (!this.destroyed && this.stageEl) {
+        this.configureMotion(this.getConfig().pet?.mode, true);
       }
     };
 
     if (typeof window !== 'undefined') {
       window.addEventListener('mousemove', this.onMouseMove, { passive: true });
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
     }
   }
 
@@ -232,6 +247,7 @@ export class PetStage {
         this.speechEl = null;
         this.lastPetKey = '';
       }
+      this.activeMode = null;
       return;
     }
 
@@ -287,11 +303,56 @@ export class PetStage {
     this.configureMotion(pet.mode);
   }
 
-  configureMotion(mode) {
-    this.stopMotion();
-    if (mode === 'float') return;
+  startStepLoop(mode) {
+    if (this.destroyed || mode === 'float') return;
+    if (typeof document !== 'undefined' && document.hidden) return;
+    const rafFn =
+      (typeof window !== 'undefined' && window.requestAnimationFrame?.bind(window)) ||
+      (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : null);
+    if (!rafFn) return;
 
-    if (mode === 'roam') {
+    const step = () => {
+      if (this.destroyed) {
+        this.rafId = null;
+        return;
+      }
+      let moved = false;
+      if (!this.dragging) {
+        const dx = this.target.x - this.pos.x;
+        const dy = this.target.y - this.pos.y;
+        const ease = mode === 'follow' ? 0.045 : 0.015;
+        if (Math.abs(dx) > 0.4 || Math.abs(dy) > 0.4) {
+          moved = true;
+          const size = this.getConfig().pet?.size || 88;
+          this.pos = clampOutsideHole(
+            this.pos.x + dx * ease,
+            this.pos.y + dy * ease,
+            size,
+            this.getBrowserHoleRect?.(),
+            { width: window.innerWidth, height: window.innerHeight }
+          );
+          this.applyCoords();
+        }
+      }
+      if (mode === 'follow' && !moved && !this.dragging) {
+        this.rafId = null;
+        return;
+      }
+      this.rafId = rafFn(step);
+    };
+    this.rafId = rafFn(step);
+  }
+
+  configureMotion(mode, force = false) {
+    const nextMode = mode || 'float';
+    if (!force && this.activeMode === nextMode && (nextMode === 'float' || this.rafId !== null || this.motionTimer !== null)) {
+      return;
+    }
+    this.stopMotion();
+    this.activeMode = nextMode;
+    if (nextMode === 'float') return;
+
+    if (nextMode === 'roam') {
       const pickNext = () => {
         const size = this.getConfig().pet?.size || 88;
         const hole = this.getBrowserHoleRect?.();
@@ -309,33 +370,12 @@ export class PetStage {
       this.motionTimer = setInterval(pickNext, 4500);
     }
 
-    const step = () => {
-      if (this.destroyed) return;
-      if (!this.dragging) {
-        const dx = this.target.x - this.pos.x;
-        const dy = this.target.y - this.pos.y;
-        const ease = mode === 'follow' ? 0.045 : 0.015;
-        if (Math.abs(dx) > 0.4 || Math.abs(dy) > 0.4) {
-          const size = this.getConfig().pet?.size || 88;
-          this.pos = clampOutsideHole(
-            this.pos.x + dx * ease,
-            this.pos.y + dy * ease,
-            size,
-            this.getBrowserHoleRect?.(),
-            { width: window.innerWidth, height: window.innerHeight }
-          );
-          this.applyCoords();
-        }
-      }
-      this.rafId = requestAnimationFrame(step);
-    };
-    this.rafId = requestAnimationFrame(step);
+    this.startStepLoop(nextMode);
   }
 
   applyCoords() {
     if (!this.stageEl) return;
-    this.stageEl.style.left = `${Math.round(this.pos.x)}px`;
-    this.stageEl.style.top = `${Math.round(this.pos.y)}px`;
+    this.stageEl.style.transform = `translate3d(${Math.round(this.pos.x)}px, ${Math.round(this.pos.y)}px, 0)`;
   }
 
   stopMotion() {
@@ -344,9 +384,13 @@ export class PetStage {
       this.motionTimer = null;
     }
     if (this.rafId) {
-      cancelAnimationFrame(this.rafId);
+      const cancelFn =
+        (typeof window !== 'undefined' && window.cancelAnimationFrame?.bind(window)) ||
+        (typeof cancelAnimationFrame === 'function' ? cancelAnimationFrame : null);
+      cancelFn?.(this.rafId);
       this.rafId = null;
     }
+    this.activeMode = null;
   }
 
   destroy() {
@@ -355,6 +399,9 @@ export class PetStage {
     clearTimeout(this.speechTimer);
     if (typeof window !== 'undefined') {
       window.removeEventListener('mousemove', this.onMouseMove);
+    }
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.onVisibilityChange);
     }
     this.stageEl?.remove();
     this.stageEl = null;

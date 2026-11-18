@@ -445,6 +445,7 @@ export function buildStylesheet(config, customMedia = {}) {
         -webkit-backdrop-filter: none !important;
         box-sizing: border-box !important;
         overflow: hidden !important;
+        contain: layout style;
       }
 
       .agy-shell [data-testid="agent-response"] pre,
@@ -622,7 +623,6 @@ export function buildStylesheet(config, customMedia = {}) {
         position: absolute;
         pointer-events: none;
         z-index: 6;
-        filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
       }
       .agy-ct-bubble-mascot--right-top {
         top: -32px;
@@ -681,10 +681,14 @@ export function buildStylesheet(config, customMedia = {}) {
     /* Pet & Sticker Layers */
     #agy-ct-pet-stage {
       position: fixed;
+      left: 0;
+      top: 0;
       z-index: 45;
       cursor: grab;
       user-select: none;
       touch-action: none;
+      will-change: transform;
+      contain: layout style;
     }
     #agy-ct-pet-stage:active { cursor: grabbing; }
     .agy-ct-pet-body { width: 100%; height: 100%; transition: transform 0.16s ease; }
@@ -719,10 +723,14 @@ export function buildStylesheet(config, customMedia = {}) {
     }
     .agy-ct-sticker-node {
       position: fixed;
+      left: 0;
+      top: 0;
       z-index: 40;
       cursor: grab;
       user-select: none;
       touch-action: none;
+      will-change: transform;
+      contain: layout style;
     }
     .agy-ct-sticker-node.has-glow { filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.22)); }
 
@@ -805,6 +813,8 @@ export class SurfaceEngine {
     this.resizeObserver = null;
     this.observedHoleEl = null;
     this.rafId = 0;
+    this.pendingHoleSync = false;
+    this.lastCssText = '';
     this.isCustomSettingsOpen = false;
     this.activeContentPane = null;
     this.injectedNavBtn = null;
@@ -821,15 +831,51 @@ export class SurfaceEngine {
     this.ensureBackgroundLayers();
     this.scanAndDecorate();
 
-    const scheduleScan = () => {
+    const hasHoleNode = (node) =>
+      Boolean(
+        node &&
+          node.nodeType === 1 &&
+          (node.hasAttribute?.('data-browser-hole') || node.querySelector?.('[data-browser-hole]'))
+      );
+
+    const scheduleScan = (records) => {
+      if (Array.isArray(records) && records.length > 0) {
+        const allInjected = records.every((r) => r.target?.closest?.('[data-agy-ct-injected="true"]'));
+        if (allInjected) return;
+        for (const r of records) {
+          if (r.type === 'attributes') {
+            this.pendingHoleSync = true;
+            break;
+          }
+          for (const n of r.addedNodes || []) {
+            if (hasHoleNode(n)) {
+              this.pendingHoleSync = true;
+              break;
+            }
+          }
+          if (this.pendingHoleSync) break;
+          for (const n of r.removedNodes || []) {
+            if (hasHoleNode(n)) {
+              this.pendingHoleSync = true;
+              break;
+            }
+          }
+          if (this.pendingHoleSync) break;
+        }
+      } else {
+        this.pendingHoleSync = true;
+      }
+
       if (this.rafId) return;
       this.rafId = requestAnimationFrame(() => {
         this.rafId = 0;
-        this.scanAndDecorate();
+        const syncHole = this.pendingHoleSync;
+        this.pendingHoleSync = false;
+        this.scanAndDecorate({ syncHole });
       });
     };
 
-    this.onWindowResize = scheduleScan;
+    this.onWindowResize = () => scheduleScan();
     window.addEventListener('resize', this.onWindowResize, { passive: true });
     this.observer = new MutationObserver(scheduleScan);
     this.observer.observe(document.body, {
@@ -864,14 +910,18 @@ export class SurfaceEngine {
     return { root, canvas };
   }
 
-  apply(config, customMedia = {}) {
+  apply(config, customMedia = {}, { skipPrebake = false } = {}) {
     let styleEl = document.getElementById(SE_STYLE_ID);
     if (!styleEl) {
       styleEl = document.createElement('style');
       styleEl.id = SE_STYLE_ID;
       document.head.appendChild(styleEl);
     }
-    styleEl.textContent = buildStylesheet(config, customMedia);
+    const nextCss = buildStylesheet(config, customMedia);
+    if (nextCss !== this.lastCssText) {
+      this.lastCssText = nextCss;
+      styleEl.textContent = nextCss;
+    }
 
     if (config.enabled) {
       document.documentElement.classList.add('agy-ct-active');
@@ -882,9 +932,11 @@ export class SurfaceEngine {
     }
 
     const shell = dtFindShellElement(config);
-    void syncPrebakedGlass(shell, config, customMedia);
+    if (!skipPrebake) {
+      void syncPrebakedGlass(shell, config, customMedia);
+    }
     this.syncTitleBarOverlay(config);
-    this.scanAndDecorate();
+    this.scanAndDecorate({ syncHole: true });
   }
 
   syncTitleBarOverlay(config) {
@@ -962,9 +1014,11 @@ export class SurfaceEngine {
     return this.holeState;
   }
 
-  scanAndDecorate() {
+  scanAndDecorate({ syncHole = true } = {}) {
     const cfg = this.getConfig();
-    this.syncShellAndHoleMetrics(cfg);
+    if (syncHole) {
+      this.syncShellAndHoleMetrics(cfg);
+    }
     this.ensureSettingsEntry(cfg);
 
     if (!cfg.enabled) {
@@ -1182,6 +1236,7 @@ export class SurfaceEngine {
     this.observer?.disconnect();
     this.resizeObserver?.disconnect();
     this.cancelPicker();
+    this.lastCssText = '';
 
     document.getElementById(SE_STYLE_ID)?.remove();
     document.getElementById('agy-ct-bg-root')?.remove();

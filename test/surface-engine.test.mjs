@@ -241,3 +241,53 @@ test('buildStylesheet themes Model Selector triggers, portaled .agy-overlay popu
   }
 });
 
+test('buildStylesheet avoids bubble-mascot drop-shadow filters, enables GPU transform hints, and SurfaceEngine.apply memoizes identical CSS', () => {
+  const origDoc = globalThis.document;
+  const origWin = globalThis.window;
+  const css = buildStylesheet({ ...DEFAULT_CONFIG, enabled: true }, {});
+  assert.ok(!css.includes('.agy-ct-bubble-mascot {\n        position: absolute;\n        pointer-events: none;\n        z-index: 6;\n        filter:'));
+  assert.ok(!/\.agy-ct-bubble-mascot\s*\{[^}]*?filter:\s*drop-shadow/i.test(css));
+  assert.ok(/#agy-ct-pet-stage[\s\S]*?will-change:\s*transform/.test(css));
+  assert.ok(/\.agy-ct-sticker-node[\s\S]*?will-change:\s*transform/.test(css));
+
+  let cssWrites = 0;
+  let storedCss = '';
+  const styleEl = {
+    id: 'agy-ct-styles',
+    get textContent() {
+      return storedCss;
+    },
+    set textContent(val) {
+      cssWrites += 1;
+      storedCss = val;
+    }
+  };
+  const makeStyle = () => ({ setProperty() {}, removeProperty() {} });
+  const shellEl = {
+    style: makeStyle(),
+    setAttribute() {},
+    removeAttribute() {},
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 1200, height: 800, right: 1200, bottom: 800 }),
+    querySelector: () => null
+  };
+  globalThis.window = { addEventListener() {}, removeEventListener() {} };
+  globalThis.document = {
+    documentElement: { classList: { add() {}, remove() {} }, style: makeStyle() },
+    body: { classList: { add() {}, remove() {} }, getAttribute: () => null, prepend() {}, appendChild() {} },
+    head: { appendChild() {} },
+    getElementById: (id) => (id === 'agy-ct-styles' ? styleEl : { style: makeStyle(), setAttribute() {} }),
+    querySelector: (sel) => (sel.includes('.agy-shell') ? shellEl : null),
+    querySelectorAll: () => []
+  };
+
+  try {
+    const engine = new SurfaceEngine({ getConfig: () => DEFAULT_CONFIG, getCustomMedia: () => ({}) });
+    engine.apply(DEFAULT_CONFIG, {}, { skipPrebake: true });
+    engine.apply({ ...DEFAULT_CONFIG, pet: { ...DEFAULT_CONFIG.pet, pos: { xPct: 45, yPct: 50 } } }, {}, { skipPrebake: true });
+    assert.equal(cssWrites, 1, 'Identical stylesheet output must not rewrite <style>.textContent');
+  } finally {
+    globalThis.document = origDoc;
+    globalThis.window = origWin;
+  }
+});
+
