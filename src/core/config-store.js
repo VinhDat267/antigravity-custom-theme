@@ -454,12 +454,13 @@ export async function loadCustomMediaMap(envWindow) {
   const result = {};
   try {
     const db = await csOpenMediaDb(win);
+    const tx = db.transaction(MEDIA_STORE_NAME, 'readonly');
+    const store = tx.objectStore(MEDIA_STORE_NAME);
     await Promise.all(
       MEDIA_SLOTS.map(
         (key) =>
           new Promise((resolve) => {
-            const tx = db.transaction(MEDIA_STORE_NAME, 'readonly');
-            const req = tx.objectStore(MEDIA_STORE_NAME).get(key);
+            const req = store.get(key);
             req.onsuccess = () => {
               if (typeof req.result === 'string' && req.result.startsWith('data:')) {
                 result[key] = req.result;
@@ -476,22 +477,49 @@ export async function loadCustomMediaMap(envWindow) {
   }
 
   const boot = win?.__AGY_THEME_BOOT__;
-  if (boot && typeof boot === 'object') {
+  if (boot && typeof boot === 'object' && !boot.__mediaConsumed && boot.media && typeof boot.media === 'object') {
     const hasHostConfig = Boolean(boot.config && typeof boot.config === 'object');
-    const bootMedia = boot.media && typeof boot.media === 'object' ? boot.media : {};
+    const bootMedia = boot.media;
+    const pendingPuts = [];
+    const pendingDeletes = [];
+
     for (const key of MEDIA_SLOTS) {
       const fromDisk = typeof bootMedia[key] === 'string' ? bootMedia[key] : '';
       if (fromDisk && (!result[key] || (hasHostConfig && result[key] !== fromDisk))) {
         result[key] = fromDisk;
-        await csWriteMediaDb(win, key, fromDisk);
+        pendingPuts.push([key, fromDisk]);
       } else if (result[key] && !fromDisk) {
         if (hasHostConfig) {
           delete result[key];
-          await csDeleteMediaDb(win, key);
+          pendingDeletes.push(key);
         } else {
           csEmitBridge({ type: 'media', key, dataUrl: result[key] }, win);
         }
       }
+    }
+
+    if (pendingPuts.length > 0 || pendingDeletes.length > 0) {
+      try {
+        const db = await csOpenMediaDb(win);
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(MEDIA_STORE_NAME, 'readwrite');
+          const store = tx.objectStore(MEDIA_STORE_NAME);
+          for (const [k, v] of pendingPuts) store.put(v, k);
+          for (const k of pendingDeletes) store.delete(k);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+      } catch {
+        // Ignore when IndexedDB unavailable
+      }
+    }
+
+    try {
+      boot.__mediaConsumed = true;
+      boot.media = null;
+    } catch {
+      // Ignore frozen boot objects
     }
   }
   return result;
