@@ -56,36 +56,48 @@ const FX_PET_QUIPS = {
   'luffy-gear5': {
     vi: ['Nhịp trống giải phóng vang lên rồi! Shishishi~ 🥁', 'Gear 5 mở hết công suất 120 FPS luôn! ✨', 'Tự do sáng tạo như Thần Mặt Trời Nika! ☁️'],
     en: ['Drums of Liberation are beating! Shishishi~ 🥁', 'Gear 5 full power at 120 FPS! ✨', 'Infinite freedom with Sun God Nika! ☁️']
+  },
+  'luffy-anime': {
+    vi: ['Ta sẽ trở thành Vua Hải Tặc! 🏴‍☠️', 'Áo choàng tung bay — tiến thẳng ra Tân Thế Giới! ⚔️', 'Xong task này đi ăn thịt nha~ Shishishi! 🍖'],
+    en: ["I'm gonna be King of the Pirates! 🏴‍☠️", 'Captain Luffy reporting for duty—full sail! ⚔️', 'Meat break once this deploy ships! Shishishi~ 🍖']
+  },
+  'luffy-gear5-anime': {
+    vi: ['Nhịp trống giải phóng vang lên rồi! Shishishi~ 🥁', 'Gear 5 Nika bùng nổ sức mạnh tối đa! ⚡', 'Chiến đấu tự do nhất toàn Tân Thế Giới! ☁️'],
+    en: ['The Drums of Liberation are beating! Shishishi~ 🥁', 'Gear 5 Sun God Nika at full power! ⚡', 'Fighting with absolute freedom! ☁️']
   }
 };
 
-export function clampOutsideHole(x, y, size, holeRect, viewport) {
+export function clampOutsideHole(x, y, sizeOrBox, holeRect, viewport) {
   const vw = viewport?.width || 1280;
   const vh = viewport?.height || 720;
+  const boxW =
+    typeof sizeOrBox === 'object' && sizeOrBox !== null ? Number(sizeOrBox.width) || 88 : Number(sizeOrBox) || 88;
+  const boxH =
+    typeof sizeOrBox === 'object' && sizeOrBox !== null ? Number(sizeOrBox.height) || boxW : boxW;
   const minPad = 8;
-  let nx = Math.max(minPad, Math.min(vw - size - minPad, x));
-  let ny = Math.max(minPad, Math.min(vh - size - minPad, y));
+  let nx = Math.max(minPad, Math.min(vw - boxW - minPad, x));
+  let ny = Math.max(minPad, Math.min(vh - boxH - minPad, y));
 
   if (!holeRect) {
     return { x: nx, y: ny };
   }
 
-  const overlapsX = nx + size > holeRect.left && nx < holeRect.right;
-  const overlapsY = ny + size > holeRect.top && ny < holeRect.bottom;
+  const overlapsX = nx + boxW > holeRect.left && nx < holeRect.right;
+  const overlapsY = ny + boxH > holeRect.top && ny < holeRect.bottom;
   if (!overlapsX || !overlapsY) {
     return { x: nx, y: ny };
   }
 
-  const leftRoom = holeRect.left - size - minPad;
+  const leftRoom = holeRect.left - boxW - minPad;
   const rightRoom = holeRect.right + minPad;
   if (leftRoom >= minPad) {
     nx = leftRoom;
-  } else if (rightRoom + size <= vw - minPad) {
+  } else if (rightRoom + boxW <= vw - minPad) {
     nx = rightRoom;
-  } else if (holeRect.top - size - minPad >= minPad) {
-    ny = holeRect.top - size - minPad;
+  } else if (holeRect.top - boxH - minPad >= minPad) {
+    ny = holeRect.top - boxH - minPad;
   } else {
-    ny = Math.max(minPad, Math.min(vh - size - minPad, holeRect.bottom + minPad));
+    ny = Math.max(minPad, Math.min(vh - boxH - minPad, holeRect.bottom + minPad));
   }
 
   return { x: Math.round(nx), y: Math.round(ny) };
@@ -120,11 +132,11 @@ export class PetStage {
     this.onMouseMove = (e) => {
       const cfg = this.getConfig();
       if (cfg.pet?.mode === 'follow' && !this.dragging && typeof window !== 'undefined') {
-        const size = cfg.pet?.size || 88;
+        const box = this.getStageBox(cfg.pet);
         const clamped = clampOutsideHole(
           e.clientX + 42,
           e.clientY - 48,
-          size,
+          box,
           this.getBrowserHoleRect?.(),
           { width: window.innerWidth, height: window.innerHeight }
         );
@@ -203,11 +215,11 @@ export class PetStage {
       if (Math.abs(e.clientX - this.dragStart.x) > 4 || Math.abs(e.clientY - this.dragStart.y) > 4) {
         this.dragMoved = true;
       }
-      const size = this.getConfig().pet?.size || 88;
+      const box = this.getStageBox();
       const clamped = clampOutsideHole(
         e.clientX - this.dragOffset.x,
         e.clientY - this.dragOffset.y,
-        size,
+        box,
         this.getBrowserHoleRect?.(),
         { width: window.innerWidth, height: window.innerHeight }
       );
@@ -272,6 +284,26 @@ export class PetStage {
     }
   }
 
+  getStageBox(pet = this.getConfig()?.pet) {
+    const height = Math.max(44, Math.min(240, Number(pet?.size) || 88));
+    const tpl = pet?.id && pet.id !== 'custom' ? MASCOT_TEMPLATES[pet.id] : null;
+    const aspect = Number(tpl?.aspect) > 0 ? Number(tpl.aspect) : 1;
+    return {
+      width: Math.max(28, Math.round(height * aspect)),
+      height
+    };
+  }
+
+  renderImageBody(srcUrl, altText) {
+    this.bodyEl.textContent = '';
+    const img = document.createElement('img');
+    img.src = srcUrl;
+    img.alt = altText;
+    img.draggable = false;
+    img.style.cssText = 'width:100%;height:100%;object-fit:contain;';
+    this.bodyEl.appendChild(img);
+  }
+
   update() {
     const cfg = this.getConfig();
     const pet = cfg.pet || {};
@@ -291,25 +323,24 @@ export class PetStage {
     }
 
     this.ensureMounted();
-    const size = Math.max(44, Math.min(160, Number(pet.size) || 88));
+    const box = this.getStageBox(pet);
     const opacity = Math.max(0.2, Math.min(1, (pet.opacity ?? 96) / 100));
-    this.stageEl.style.width = `${size}px`;
-    this.stageEl.style.height = `${size}px`;
+    this.stageEl.style.width = `${box.width}px`;
+    this.stageEl.style.height = `${box.height}px`;
     this.stageEl.style.opacity = String(opacity);
 
+    const tpl = pet.id && pet.id !== 'custom' ? MASCOT_TEMPLATES[pet.id] : null;
     const customUrl = this.getCustomMedia?.().pet || '';
-    const renderKey = pet.id === 'custom' ? `custom:${customUrl}` : `tpl:${pet.id}`;
+    const tplUrl = tpl?.embeddedDataUri || '';
+    const renderKey = pet.id === 'custom' ? `custom:${customUrl}` : `tpl:${pet.id}:${tplUrl ? 'img' : 'svg'}`;
     if (this.lastPetKey !== renderKey) {
       this.lastPetKey = renderKey;
       if (pet.id === 'custom' && customUrl) {
-        this.bodyEl.textContent = '';
-        const img = document.createElement('img');
-        img.src = customUrl;
-        img.alt = 'Custom Pet';
-        img.style.cssText = 'width:100%;height:100%;object-fit:contain;pointer-events:none;';
-        this.bodyEl.appendChild(img);
+        this.renderImageBody(customUrl, 'Custom Pet');
+      } else if (tplUrl) {
+        this.renderImageBody(tplUrl, tpl.nameEn || pet.id);
       } else {
-        const tplId = MASCOT_TEMPLATES[pet.id] ? pet.id : 'rong-ngoc';
+        const tplId = tpl ? pet.id : 'rong-ngoc';
         this.bodyEl.innerHTML = renderMascotSvg(tplId, 'pet');
       }
     }
@@ -320,7 +351,7 @@ export class PetStage {
       const clamped = clampOutsideHole(
         (xPct / 100) * window.innerWidth,
         (yPct / 100) * window.innerHeight,
-        size,
+        box,
         this.getBrowserHoleRect?.(),
         { width: window.innerWidth, height: window.innerHeight }
       );
@@ -331,7 +362,7 @@ export class PetStage {
         this.pos = clampOutsideHole(
           this.pos.x,
           this.pos.y,
-          size,
+          box,
           this.getBrowserHoleRect?.(),
           { width: window.innerWidth, height: window.innerHeight }
         );
@@ -370,11 +401,11 @@ export class PetStage {
         const ease = mode === 'follow' ? 0.045 : 0.015;
         if (Math.abs(dx) > 0.4 || Math.abs(dy) > 0.4) {
           moved = true;
-          const size = this.getConfig().pet?.size || 88;
+          const box = this.getStageBox();
           this.pos = clampOutsideHole(
             this.pos.x + dx * ease,
             this.pos.y + dy * ease,
-            size,
+            box,
             this.getBrowserHoleRect?.(),
             { width: window.innerWidth, height: window.innerHeight }
           );
@@ -402,13 +433,13 @@ export class PetStage {
 
     if (nextMode === 'roam') {
       const pickNext = () => {
-        const size = this.getConfig().pet?.size || 88;
+        const box = this.getStageBox();
         const hole = this.getBrowserHoleRect?.();
-        const maxW = hole ? Math.max(80, hole.left - size - 16) : Math.max(80, window.innerWidth - size - 48);
+        const maxW = hole ? Math.max(80, hole.left - box.width - 16) : Math.max(80, window.innerWidth - box.width - 48);
         const clamped = clampOutsideHole(
           24 + Math.random() * maxW,
-          40 + Math.random() * Math.max(40, window.innerHeight - size - 80),
-          size,
+          40 + Math.random() * Math.max(40, window.innerHeight - box.height - 80),
+          box,
           hole,
           { width: window.innerWidth, height: window.innerHeight }
         );
@@ -430,6 +461,13 @@ export class PetStage {
     if (next !== this.lastTransform) {
       this.lastTransform = next;
       this.stageEl.style.transform = next;
+    }
+    if (this.speechEl?.classList) {
+      if (this.pos.y < 64) {
+        this.speechEl.classList.add('is-below');
+      } else {
+        this.speechEl.classList.remove('is-below');
+      }
     }
   }
 

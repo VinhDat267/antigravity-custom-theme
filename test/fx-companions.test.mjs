@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { MASCOT_TEMPLATES } from '../src/assets/mascots.js';
 import { AmbientCanvasEngine } from '../src/fx/ambient-canvas.js';
 import { clampOutsideHole, PetStage } from '../src/fx/pet-stage.js';
 import { StickerLayer } from '../src/fx/sticker-layer.js';
@@ -84,6 +85,9 @@ test('clampOutsideHole keeps pets and stickers outside active Split-Browser hole
 
   const noHole = clampOutsideHole(850, 200, 88, null, viewport);
   assert.deepEqual(noHole, { x: 850, y: 200 });
+
+  const rectHoleClamped = clampOutsideHole(650, 200, { width: 109, height: 176 }, hole, viewport);
+  assert.ok(rectHoleClamped.x <= 700 - 109 - 8, `Expected portrait box x <= 583, got ${rectHoleClamped.x}`);
 
   assert.equal(typeof PetStage, 'function');
   assert.equal(typeof StickerLayer, 'function');
@@ -542,6 +546,14 @@ test('PetStage triggerClickReaction displays localized One Piece quips for all 4
       'luffy-gear5': {
         vi: ['Nhịp trống giải phóng vang lên rồi! Shishishi~ 🥁', 'Gear 5 mở hết công suất 120 FPS luôn! ✨', 'Tự do sáng tạo như Thần Mặt Trời Nika! ☁️'],
         en: ['Drums of Liberation are beating! Shishishi~ 🥁', 'Gear 5 full power at 120 FPS! ✨', 'Infinite freedom with Sun God Nika! ☁️']
+      },
+      'luffy-anime': {
+        vi: ['Ta sẽ trở thành Vua Hải Tặc! 🏴‍☠️', 'Áo choàng tung bay — tiến thẳng ra Tân Thế Giới! ⚔️', 'Xong task này đi ăn thịt nha~ Shishishi! 🍖'],
+        en: ["I'm gonna be King of the Pirates! 🏴‍☠️", 'Captain Luffy reporting for duty—full sail! ⚔️', 'Meat break once this deploy ships! Shishishi~ 🍖']
+      },
+      'luffy-gear5-anime': {
+        vi: ['Nhịp trống giải phóng vang lên rồi! Shishishi~ 🥁', 'Gear 5 Nika bùng nổ sức mạnh tối đa! ⚡', 'Chiến đấu tự do nhất toàn Tân Thế Giới! ☁️'],
+        en: ['The Drums of Liberation are beating! Shishishi~ 🥁', 'Gear 5 Sun God Nika at full power! ⚡', 'Fighting with absolute freedom! ☁️']
       }
     };
 
@@ -585,6 +597,94 @@ test('PetStage triggerClickReaction displays localized One Piece quips for all 4
   } finally {
     globalThis.setTimeout = origSetTimeout;
     globalThis.clearTimeout = origClearTimeout;
+    globalThis.document = origDoc;
+    globalThis.window = origWin;
+  }
+});
+
+test('PetStage applies portrait aspect dimensions, renders embedded WebP img cleanly, and flips speech near top edge', () => {
+  const origDoc = globalThis.document;
+  const origWin = globalThis.window;
+  const origUri = MASCOT_TEMPLATES['luffy-anime'].embeddedDataUri;
+
+  const makeTrackEl = (tag) => {
+    const classes = new Set();
+    return {
+      tagName: tag.toUpperCase(),
+      id: '',
+      src: '',
+      alt: '',
+      draggable: true,
+      textContent: '',
+      children: [],
+      style: { width: '', height: '', opacity: '', transform: '', cssText: '', setProperty() {} },
+      classList: {
+        add: (...c) => c.forEach((x) => classes.add(x)),
+        remove: (...c) => c.forEach((x) => classes.delete(x)),
+        contains: (c) => classes.has(c)
+      },
+      setAttribute() {},
+      getBoundingClientRect: () => ({ left: 100, top: 20, width: 109, height: 176 }),
+      addEventListener() {},
+      remove() {},
+      append(...kids) {
+        this.children.push(...kids);
+      },
+      appendChild(k) {
+        this.children.push(k);
+        return k;
+      }
+    };
+  };
+
+  let yPct = 1;
+  try {
+    MASCOT_TEMPLATES['luffy-anime'].embeddedDataUri = 'data:image/webp;base64,FAKEIMG';
+    globalThis.document = {
+      hidden: false,
+      body: { contains: () => true, appendChild() {} },
+      createElement: (tag) => makeTrackEl(tag),
+      addEventListener() {},
+      removeEventListener() {}
+    };
+    globalThis.window = {
+      innerWidth: 1600,
+      innerHeight: 900,
+      addEventListener() {},
+      removeEventListener() {},
+      requestAnimationFrame: () => 1,
+      cancelAnimationFrame() {}
+    };
+
+    const pet = new PetStage({
+      getConfig: () => ({
+        enabled: true,
+        lang: 'vi',
+        pet: { enabled: true, id: 'luffy-anime', mode: 'float', size: 176, opacity: 96, pos: { xPct: 80, yPct }, showSpeechOnClick: true }
+      }),
+      getCustomMedia: () => ({}),
+      getBrowserHoleRect: () => null,
+      onPositionSave: () => {}
+    });
+
+    try {
+      pet.update();
+      assert.equal(pet.stageEl.style.width, '109px', 'Stage width should scale by 0.62 portrait aspect');
+      assert.equal(pet.stageEl.style.height, '176px', 'Stage height should support 176px (>160px)');
+      const renderedImg = pet.bodyEl.children[0];
+      assert.ok(renderedImg && renderedImg.tagName === 'IMG', 'Expected <img> element when embeddedDataUri is set');
+      assert.equal(renderedImg.src, 'data:image/webp;base64,FAKEIMG');
+      assert.equal(renderedImg.draggable, false, 'Native HTML5 drag must be disabled on anime sprite img');
+      assert.equal(pet.speechEl.classList.contains('is-below'), true, 'Speech bubble must flip downward when y < 64');
+
+      yPct = 48;
+      pet.update();
+      assert.equal(pet.speechEl.classList.contains('is-below'), false, 'Speech bubble should sit above pet when y >= 64');
+    } finally {
+      pet.destroy();
+    }
+  } finally {
+    MASCOT_TEMPLATES['luffy-anime'].embeddedDataUri = origUri;
     globalThis.document = origDoc;
     globalThis.window = origWin;
   }

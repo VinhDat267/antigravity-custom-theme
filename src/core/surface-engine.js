@@ -940,14 +940,18 @@ export function buildStylesheet(config, customMedia = {}) {
       left: 0;
       top: 0;
       z-index: 45;
-      cursor: grab;
+      pointer-events: none;
       user-select: none;
       touch-action: none;
       will-change: transform;
       contain: layout style;
     }
-    #agy-ct-pet-stage:active { cursor: grabbing; }
-    .agy-ct-pet-body { width: 100%; height: 100%; animation: agyCtFloat 4.2s ease-in-out infinite; will-change: transform; transition: scale 0.16s ease; }
+    .agy-ct-pet-body { width: 100%; height: 100%; pointer-events: none; animation: agyCtFloat 4.2s ease-in-out infinite; will-change: transform; transition: scale 0.16s ease; }
+    .agy-ct-pet-body > img { pointer-events: auto; cursor: grab; -webkit-user-drag: none; user-select: none; }
+    .agy-ct-pet-body > img:active { cursor: grabbing; }
+    #agy-ct-pet-stage .agy-ct-svg-art { pointer-events: none; }
+    #agy-ct-pet-stage .agy-ct-svg-art :is(path, rect, circle, ellipse, polygon, polyline) { pointer-events: visiblePainted; cursor: grab; }
+    #agy-ct-pet-stage .agy-ct-svg-art :is(path, rect, circle, ellipse, polygon, polyline):active { cursor: grabbing; }
     #agy-ct-pet-stage:hover .agy-ct-pet-body { scale: 1.06; }
     .agy-ct-pet-speech {
       position: absolute;
@@ -966,7 +970,13 @@ export function buildStylesheet(config, customMedia = {}) {
       transition: opacity 0.2s ease, transform 0.2s ease;
       ${isLight ? 'box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14);' : ''}
     }
+    .agy-ct-pet-speech.is-below {
+      bottom: auto;
+      top: calc(100% + 8px);
+      transform: translateX(-50%) translateY(-4px);
+    }
     .agy-ct-pet-speech.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .agy-ct-pet-speech.is-below.is-visible { transform: translateX(-50%) translateY(0); }
     .agy-ct-pet-burst {
       position: fixed;
       pointer-events: none;
