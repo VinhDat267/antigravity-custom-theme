@@ -947,11 +947,11 @@ export function buildStylesheet(config, customMedia = {}) {
       contain: layout style;
     }
     .agy-ct-pet-body { width: 100%; height: 100%; pointer-events: none; animation: agyCtFloat 4.2s ease-in-out infinite; will-change: transform; transition: scale 0.16s ease; }
-    .agy-ct-pet-body > img { pointer-events: auto; cursor: grab; -webkit-user-drag: none; user-select: none; }
+    .agy-ct-pet-body > img { pointer-events: auto; touch-action: none; cursor: grab; -webkit-user-drag: none; user-select: none; }
     .agy-ct-pet-body > img:active { cursor: grabbing; }
     #agy-ct-pet-stage .agy-ct-svg-art { pointer-events: none; }
-    #agy-ct-pet-stage .agy-ct-svg-art :is(path, rect, circle, ellipse, polygon, polyline) { pointer-events: visiblePainted; cursor: grab; }
-    #agy-ct-pet-stage .agy-ct-svg-art :is(path, rect, circle, ellipse, polygon, polyline):active { cursor: grabbing; }
+    #agy-ct-pet-stage .agy-ct-svg-art :is(path, rect, circle, ellipse, polygon, polyline, line) { pointer-events: visiblePainted; cursor: grab; }
+    #agy-ct-pet-stage .agy-ct-svg-art :is(path, rect, circle, ellipse, polygon, polyline, line):active { cursor: grabbing; }
     #agy-ct-pet-stage:hover .agy-ct-pet-body { scale: 1.06; }
     .agy-ct-pet-speech {
       position: absolute;

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Zero-dependency IIFE bundler for Antigravity 2.x Custom Theme Suite.
- * - Optionally embeds raster/SVG wallpapers from assets/wallpapers/<id>.*
+ * - Optionally embeds raster/SVG wallpapers (assets/wallpapers/<id>.*) and mascot sprites (assets/pets/<id>.*)
  * - Concatenates src/ modules in dependency order into dist/antigravity-theme.js
  */
 
@@ -33,7 +33,7 @@ export const MODULE_ORDER = [
   'index.js'
 ];
 
-const WALLPAPER_MIME_MAP = {
+const ASSET_MIME_MAP = {
   '.webp': 'image/webp',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -41,6 +41,16 @@ const WALLPAPER_MIME_MAP = {
   '.avif': 'image/avif',
   '.svg': 'image/svg+xml'
 };
+
+const EMBEDDED_URI_VALUE_RE = "(?:'[^']*'|\"[^\"]*\"|wpSvgUri\\(\\s*`[^`]*`\\s*\\))";
+
+function replaceEmbeddedDataUri(sourceCode, id, replacementExpr) {
+  if (typeof id !== 'string' || !/^[a-z0-9-]+$/i.test(id)) return sourceCode;
+  const pattern = new RegExp(
+    `(id:\\s*(['"])${id}\\2(?:(?!(?:\\}|render\\s*\\())[\\s\\S])*?embeddedDataUri:\\s*)${EMBEDDED_URI_VALUE_RE}`
+  );
+  return String(sourceCode || '').replace(pattern, (_m, prefix) => `${prefix}${replacementExpr}`);
+}
 
 export function compactModuleCode(code) {
   return String(code || '')
@@ -68,15 +78,17 @@ export function stripModuleSyntax(code) {
 
 export function stripDeletedWallpapers(bundleSource, config) {
   const hidden = Array.isArray(config?.hiddenWallpapers) ? config.hiddenWallpapers : [];
-  let out = String(bundleSource || '');
-  for (const id of hidden) {
-    if (typeof id !== 'string' || !/^[a-z0-9-]+$/i.test(id)) continue;
-    const pattern = new RegExp(
-      `(id:\\s*(['"])${id}\\2[\\s\\S]*?embeddedDataUri:\\s*)(?:'[^']*'|"[^"]*"|wpSvgUri\\(\\s*\`[^\`]*\`\\s*\\))`
-    );
-    out = out.replace(pattern, (_m, prefix) => `${prefix}''`);
-  }
-  return out;
+  const src = String(bundleSource || '');
+  if (!hidden.length) return src;
+  const stripInBlock = (block) => {
+    let chunk = block;
+    for (const id of hidden) {
+      chunk = replaceEmbeddedDataUri(chunk, id, "''");
+    }
+    return chunk;
+  };
+  const wpArrayRe = /(\bWALLPAPERS\s*=\s*\[[\s\S]*?\];)/;
+  return wpArrayRe.test(src) ? src.replace(wpArrayRe, (wpBlock) => stripInBlock(wpBlock)) : stripInBlock(src);
 }
 
 function collectDiskAssets(dirPath) {
@@ -85,7 +97,7 @@ function collectDiskAssets(dirPath) {
   for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
     if (!entry.isFile()) continue;
     const ext = path.extname(entry.name).toLowerCase();
-    const mime = WALLPAPER_MIME_MAP[ext];
+    const mime = ASSET_MIME_MAP[ext];
     if (!mime) continue;
     const id = path.basename(entry.name, ext);
     if (!/^[a-z0-9-]+$/i.test(id)) continue;
@@ -98,10 +110,7 @@ function collectDiskAssets(dirPath) {
 function injectEmbeddedDataUris(sourceCode, assetMap) {
   let out = sourceCode;
   for (const [id, dataUri] of Object.entries(assetMap)) {
-    const pattern = new RegExp(
-      `(id:\\s*['"]${id}['"][\\s\\S]*?embeddedDataUri:\\s*)(?:'[^']*'|"[^"]*"|wpSvgUri\\(\\s*\`[^\`]*\`\\s*\\))`
-    );
-    out = out.replace(pattern, (_m, prefix) => `${prefix}'${dataUri}'`);
+    out = replaceEmbeddedDataUri(out, id, `'${dataUri}'`);
   }
   return out;
 }

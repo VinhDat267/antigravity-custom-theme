@@ -519,5 +519,8 @@ export class PetStage {
     }
     this.stageEl?.remove();
     this.stageEl = null;
+    this.bodyEl = null;
+    this.speechEl = null;
+    this.lastPetKey = '';
   }
 }

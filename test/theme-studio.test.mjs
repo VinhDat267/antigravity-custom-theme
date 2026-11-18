@@ -6,6 +6,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 
 import { buildBundle } from '../scripts/build.mjs';
+import { MASCOT_TEMPLATES } from '../src/assets/mascots.js';
 import { DEFAULT_CONFIG } from '../src/core/config-store.js';
 import { SurfaceEngine } from '../src/core/surface-engine.js';
 import { ThemeStudio } from '../src/ui/theme-studio.js';
@@ -298,10 +299,12 @@ test('Bundle ThemeStudio close button restores native Settings panes without lea
 
 test('ThemeStudio Chat tab renders readable dark text inside light input preset previews', () => {
   const origDoc = globalThis.document;
+  const origLuffyUri = MASCOT_TEMPLATES['luffy-anime'].embeddedDataUri;
   const { doc } = createDomStubEnvironment();
   globalThis.document = doc;
 
   try {
+    MASCOT_TEMPLATES['luffy-anime'].embeddedDataUri = 'data:image/webp;base64,STUDIOIMG';
     const studio = new ThemeStudio({
       getConfig: () => ({ ...DEFAULT_CONFIG, lang: 'en' }),
       getCustomMedia: () => ({}),
@@ -345,7 +348,16 @@ test('ThemeStudio Chat tab renders readable dark text inside light input preset 
     );
     assert.ok(petSizeSlider, 'Expected pet size range slider in FX tab');
     assert.equal(String(petSizeSlider.getAttribute('max')), '240', 'Pet size slider max must be 240 for full-body models');
+
+    const petThumbImg = findFirst(
+      fxRoot,
+      (el) => el.tagName === 'IMG' && el.getAttribute?.('src') === 'data:image/webp;base64,STUDIOIMG'
+    );
+    assert.ok(petThumbImg, 'Expected FX tab mascot card to render <img> thumbnail when embeddedDataUri is present');
+    assert.equal(petThumbImg.getAttribute?.('alt'), 'Anime Luffy (Full Body)');
+    assert.ok(petThumbImg.style.cssText.includes('pointer-events:none'), 'FX pet thumbnail img must use pointer-events:none');
   } finally {
+    MASCOT_TEMPLATES['luffy-anime'].embeddedDataUri = origLuffyUri;
     globalThis.document = origDoc;
   }
 });

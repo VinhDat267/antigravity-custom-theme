@@ -447,6 +447,10 @@ test('PetStage roam mode sleeps rAF once target is reached and wakes on next roa
       assert.equal(pet.rafId, null, 'Roam mode must sleep rAF loop once pet settles at target');
     } finally {
       pet.destroy();
+      assert.equal(pet.stageEl, null, 'destroy() must null stageEl');
+      assert.equal(pet.bodyEl, null, 'destroy() must null bodyEl');
+      assert.equal(pet.speechEl, null, 'destroy() must null speechEl');
+      assert.equal(pet.lastPetKey, '', 'destroy() must reset lastPetKey');
     }
 
     const canvas = createMockCanvas();
@@ -707,6 +711,10 @@ test('PetStage applies portrait aspect dimensions, renders embedded WebP img cle
       assert.equal(pet.speechEl.classList.contains('is-align-right'), false);
     } finally {
       pet.destroy();
+      assert.equal(pet.stageEl, null, 'destroy() must null stageEl');
+      assert.equal(pet.bodyEl, null, 'destroy() must null bodyEl');
+      assert.equal(pet.speechEl, null, 'destroy() must null speechEl');
+      assert.equal(pet.lastPetKey, '', 'destroy() must reset lastPetKey');
     }
   } finally {
     MASCOT_TEMPLATES['luffy-anime'].embeddedDataUri = origUri;

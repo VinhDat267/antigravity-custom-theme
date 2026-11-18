@@ -255,6 +255,52 @@ test('buildBundle embeds assets/pets/*.webp sprites into MASCOT_TEMPLATES withou
       sandbox.__CAPTURED_PETS__['luffy-gear5-anime']?.embeddedDataUri,
       `data:image/webp;base64,${Buffer.from('GEAR5WEBP').toString('base64')}`
     );
+
+    // Strip hiddenWallpapers containing mascot IDs must NEVER clear MASCOT_TEMPLATES embeddedDataUri
+    const strippedWithMascotIds = stripDeletedWallpapers(res.code, {
+      hiddenWallpapers: ['luffy-chibi', 'luffy-anime']
+    });
+    const captureAfterStrip = strippedWithMascotIds.replace(
+      'controller.init();',
+      'globalThis.__CAPTURED_PETS_AFTER__ = MASCOT_TEMPLATES; controller.init();'
+    );
+    const sandbox2 = {
+      ...sandbox,
+      document: { ...sandbox.document },
+      __CAPTURED_PETS_AFTER__: null
+    };
+    sandbox2.window = sandbox2;
+    sandbox2.globalThis = sandbox2;
+    new vm.Script(captureAfterStrip).runInNewContext(sandbox2);
+    assert.equal(
+      sandbox2.__CAPTURED_PETS_AFTER__['luffy-anime']?.embeddedDataUri,
+      `data:image/webp;base64,${Buffer.from('LUFFYWEBP').toString('base64')}`,
+      'stripDeletedWallpapers must stay scoped to WALLPAPERS and never blank mascot sprites'
+    );
+
+    // Unannotated mascot file (e.g., luffy-chibi.webp where entry has no embeddedDataUri) must not bleed into luffy-anime
+    fs.writeFileSync(path.join(tmpDir, 'assets', 'pets', 'luffy-chibi.webp'), Buffer.from('WRONGCHIBI'));
+    const bleedRes = buildBundle({
+      rootDir: tmpDir,
+      outFile: path.join(tmpDir, 'dist', 'antigravity-theme.js')
+    });
+    const captureBleed = bleedRes.code.replace(
+      'controller.init();',
+      'globalThis.__CAPTURED_PETS_BLEED__ = MASCOT_TEMPLATES; controller.init();'
+    );
+    const sandbox3 = {
+      ...sandbox,
+      document: { ...sandbox.document },
+      __CAPTURED_PETS_BLEED__: null
+    };
+    sandbox3.window = sandbox3;
+    sandbox3.globalThis = sandbox3;
+    new vm.Script(captureBleed).runInNewContext(sandbox3);
+    assert.equal(
+      sandbox3.__CAPTURED_PETS_BLEED__['luffy-anime']?.embeddedDataUri,
+      `data:image/webp;base64,${Buffer.from('LUFFYWEBP').toString('base64')}`,
+      'injectEmbeddedDataUris must stop at object boundary and not overwrite subsequent mascot'
+    );
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }

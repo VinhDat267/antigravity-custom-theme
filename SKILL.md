@@ -12,7 +12,7 @@ Zero-patch CDP theme suite for Google Antigravity 2.x Desktop on Windows (Node.j
 Run all commands from the repository root:
 
 ```bash
-node cli.mjs build                 # Compile src/ + assets/wallpapers/ -> dist/antigravity-theme.js
+node cli.mjs build                 # Compile src/ + assets/{wallpapers,pets}/ -> dist/antigravity-theme.js
 node cli.mjs inject --one-shot     # Apply theme immediately to open Antigravity 2.x windows
 node cli.mjs start                 # Start background CDP sync & hot-reload daemon
 node cli.mjs status                # Inspect daemon PID, active CDP port, bundle & config state
@@ -34,6 +34,7 @@ For headless browser preview during UI development, open `preview.html` or run `
    - Pick contrasting `accentColor`, `secondaryColor`, `overlayRgb`, and `isLight: true | false` matching the target artwork palette.
 3. **Bubbles / Inputs / Mascots / Stickers:**
    - Extend `BUBBLE_PRESETS` (`src/presets/bubbles.js`), `INPUT_PRESETS` (`src/presets/inputs.js`), `MASCOT_TEMPLATES` (`src/assets/mascots.js`), or `STICKER_TEMPLATES` (`src/assets/stickers.js`) keeping vector SVG artwork compact.
+   - For transparent full-body raster pets (`.webp` / `.png`), place `assets/pets/<id>.<ext>` alongside a matching `MASCOT_TEMPLATES` entry declaring `aspect` and `embeddedDataUri: ''` (plus a compact vector `render()` fallback); `scripts/build.mjs` embeds it automatically into the compiled bundle.
 4. **Rebuild & Verify:**
    - Run `node cli.mjs build`, `node --test`, `node cli.mjs inject --one-shot`, and `node cli.mjs verify`.
 
