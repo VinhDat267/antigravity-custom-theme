@@ -121,7 +121,7 @@ test('One Piece wallpapers, mascots, and stickers provide valid SVG markup, slug
     assert.match(resolveWallpaperUrl({ enabled: true, wallpaperId: id }), /^data:image\/svg\+xml/);
   }
 
-  for (const petId of ['chopper-chibi', 'thousand-sunny']) {
+  for (const petId of ['chopper-chibi', 'thousand-sunny', 'luffy-chibi', 'luffy-gear5']) {
     assert.ok(MASCOT_TEMPLATES[petId], `Missing mascot ${petId}`);
     const petSvg = renderMascotSvg(petId, 'pet');
     const bubbleSvg = renderMascotSvg(petId, 'bubble');
@@ -164,7 +164,11 @@ test('One Piece dual theme bundles, bubbles, and composer inputs are registered 
   assert.equal(sunset.patch.wallpaperId, 'one-piece-sunny-sunset');
   assert.equal(sunset.patch.bubbleId, 'mu-rom-hai-tac');
   assert.equal(sunset.patch.inputId, 'dai-duong-sunny');
-  assert.equal(sunset.patch.pet.id, 'thousand-sunny');
+  assert.equal(sunset.patch.pet.id, 'luffy-chibi');
+
+  const strawHatBubble = BUBBLE_PRESETS.find((b) => b.id === 'mu-rom-hai-tac');
+  assert.ok(strawHatBubble, 'Missing mu-rom-hai-tac bubble preset');
+  assert.equal(strawHatBubble.mascotId, 'luffy-chibi');
 
   assert.ok(bounty, 'Missing one-piece-grand-line-bounty bundle');
   assert.equal(bounty.patch.isLight, true);

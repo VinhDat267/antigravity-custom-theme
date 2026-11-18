@@ -18,7 +18,7 @@ Mở rộng thư viện preset sẵn có của **Antigravity 2.x Custom Theme Su
   - `one-piece-sunny-sunset` (Dark): Tông đại dương hoàng hôn (`#d7474b` đỏ hải tặc + `#f5c451` vàng mũ rơm, `overlayRgb: 14, 21, 36`).
   - `one-piece-grand-line-bounty` (Light): Tông giấy da hải đồ cổ (`isLight: true`, `#d7474b` đỏ ấn triện + `#4d699b` xanh hải quân, `overlayRgb: 244, 234, 206`).
 - **2 Hình nền SVG procedural (`src/assets/wallpapers-manifest.js`)**: `one-piece-sunny-sunset` và `one-piece-grand-line-map` hỗ trợ `wpSvgUri`, `prebaked-glass.js`, và `stripDeletedWallpapers`.
-- **2 Thú cưng SVG tương tác + lời thoại song ngữ (`src/assets/mascots.js`, `src/fx/pet-stage.js`)**: `thousand-sunny` (Tàu Thousand Sunny) và `chopper-chibi` (Chopper Chibi) kèm lời thoại `VI`/`EN` trong `FX_PET_QUIPS`.
+- **2 Thú cưng SVG tương tác + lời thoại song ngữ (`src/assets/mascots.js`, `src/fx/pet-stage.js`)**: `luffy-chibi` (Luffy Mũ Rơm), `luffy-gear5` (Luffy Gear 5 Nika), `thousand-sunny` (Tàu Thousand Sunny) và `chopper-chibi` (Chopper Chibi) kèm lời thoại `VI`/`EN` trong `FX_PET_QUIPS` (dùng mảng màu cel-shaded nhiều lớp, không phụ thuộc static `<defs>` ID nội tuyến).
 - **2 Kiểu bong bóng chat (`src/presets/bubbles.js`) & 2 Khung nhập Composer (`src/presets/inputs.js`)**: `mu-rom-hai-tac` + `dai-duong-sunny` (Dark), `lenh-truy-na` + `hai-do-co` (Light).
 - **3 Sticker SVG kéo thả (`src/assets/stickers.js`)**: `mu-rom` (Mũ Rơm), `jolly-roger` (Cờ đầu lâu Mũ Rơm), `log-pose` (La bàn Log Pose).
 - **Kiểm thử đầy đủ**: Bổ sung unit & integration test trong `test/presets.test.mjs`, `test/surface-engine.test.mjs`, `test/fx-companions.test.mjs` và xác minh build + live CDP.
@@ -63,18 +63,24 @@ Mọi template sử dụng `viewBox="0 0 96 96"`, class ngoài `.agy-ct-svg-art`
    - Chú tuần lộc chibi đội mũ hồng chữ thập trắng (hoặc mũ tròn viền xanh), mũi xanh dương đặc trưng, gạc nâu nhỏ, mắt chớp `.agy-ct-anim-blink` và ngôi sao hoa anh đào lấp lánh `.agy-ct-anim-twinkle`. Gradient IDs tiền tố `opCh*`.
    - **Lời thoại (`FX_PET_QUIPS['chopper-chibi']`)**: Song ngữ `vi` / `en` (3 câu vui nhộn đặc trưng bác sĩ tuần lộc cổ vũ dev).
 2. **`thousand-sunny`** — *"Tàu Thousand Sunny"* / *"Thousand Sunny"* (`accent: '#f5c451'`)
-   - Tàu chiến thu nhỏ với mũi đầu sư tử bờm vàng cam, cánh buồm trắng/đỏ cột cờ hải tặc và sóng biển nhẹ `.agy-ct-anim-wag`, ánh sao lấp lánh `.agy-ct-anim-twinkle`. Gradient IDs tiền tố `opSn*`.
+   - Tàu chiến thu nhỏ với mũi đầu sư tử bờm vàng cam, cánh buồm trắng/đỏ cột cờ hải tặc và sóng biển nhẹ `.agy-ct-anim-wag`, ánh sao lấp lánh `.agy-ct-anim-twinkle`.
    - **Lời thoại (`FX_PET_QUIPS['thousand-sunny']`)**: Song ngữ `vi` / `en` (3 câu cổ vũ ra khơi, code mượt qua Tân Thế Giới).
+3. **`luffy-chibi`** — *"Luffy Mũ Rơm"* / *"Straw Hat Luffy"* (`accent: '#d7474b'`)
+   - Mũ rơm dải băng đỏ, sẹo dưới mắt trái, áo đỏ hải tặc kèm sẹo chữ X trước ngực, nụ cười rạng rỡ, `.agy-ct-anim-blink` và `.agy-ct-anim-twinkle`.
+   - **Lời thoại (`FX_PET_QUIPS['luffy-chibi']`)**: Song ngữ `vi` / `en` (3 câu cổ vũ tinh thần Vua Hải Tặc).
+4. **`luffy-gear5`** — *"Luffy Gear 5 (Nika)"* / *"Luffy Gear 5 (Nika)"* (`accent: '#e9d5ff'`)
+   - Tóc trắng xoáy mây Nika, dải mây hagoromo quanh vai, mắt đỏ rực `.agy-ct-anim-blink`, tia sét Haki `.agy-ct-anim-spark` và ánh sao `.agy-ct-anim-twinkle`.
+   - **Lời thoại (`FX_PET_QUIPS['luffy-gear5']`)**: Song ngữ `vi` / `en` (3 câu Nhịp Trống Giải Phóng).
 
 ### 4.3. Sticker (`src/assets/stickers.js`)
-Định dạng `viewBox="0 0 64 64"`, class `.agy-ct-svg-art`, không dùng gradient ID trùng lặp (tiền tố `opSt*` nếu có `<defs>`):
+Định dạng `viewBox="0 0 64 64"`, class `.agy-ct-svg-art`, cel-shaded không dùng static `<defs>` ID:
 1. **`mu-rom`** — *"Mũ Rơm Hải Tặc"* / *"Straw Hat"*: Nón rơm vàng óng kèm dải ruy-băng đỏ rực.
 2. **`jolly-roger`** — *"Cờ Đầu Lâu Mũ Rơm"* / *"Straw Hat Jolly Roger"*: Lá cờ đen đầu lâu mũ rơm cách điệu cùng hai xương chéo.
 3. **`log-pose`** — *"La Bàn Log Pose"* / *"Log Pose Compass"*: Quả cầu thủy tinh xanh ngọc đặt trong vòng đồng chỉ hướng từ trường.
 
 ### 4.4. Bong bóng chat & Khung nhập Composer (`src/presets/bubbles.js`, `src/presets/inputs.js`)
 - **Bong bóng `mu-rom-hai-tac`** (*"Mũ Rơm Hải Tặc"* / *"Straw Hat Pirate"*):
-  - Nền gradient biển đêm kết hợp ánh hoàng hôn (`rgba(15, 28, 48, 0.92)` → `rgba(38, 19, 28, 0.94)`), viền đỏ hải tặc (`rgba(215, 71, 75, 0.58)`), chữ `#fef3c7`, `mascotId: 'thousand-sunny'`, `mascotAlign: 'right-top'`, `scrollCaps: false`, `cyberCorners: false`, `cornerOrnament: 'gold'`.
+  - Nền gradient biển đêm kết hợp ánh hoàng hôn (`rgba(15, 28, 48, 0.92)` → `rgba(38, 19, 28, 0.94)`), viền đỏ hải tặc (`rgba(215, 71, 75, 0.58)`), chữ `#fef3c7`, `mascotId: 'luffy-chibi'`, `mascotAlign: 'right-top'`, `scrollCaps: false`, `cyberCorners: false`, `cornerOrnament: 'gold'`.
 - **Bong bóng `lenh-truy-na`** (*"Lệnh Truy Nã"* / *"Wanted Bounty"*):
   - Nền giấy truy nã sáng ấm (`rgba(252, 243, 217, 0.96)` → `rgba(235, 215, 172, 0.95)`), viền nâu mực (`rgba(146, 64, 14, 0.52)`), chữ tối `#2b1d0e`, `mascotId: 'chopper-chibi'`, `mascotAlign: 'right-top'`, `scrollCaps: true`, `cyberCorners: false`, `cornerOrnament: ''` *(để trống nhằm không đụng `::after` của `scrollCaps`)*.
 - **Composer `dai-duong-sunny`** (*"Boong Tàu Hoàng Hôn"* / *"Sunny Sunset Deck"*):
@@ -88,7 +94,7 @@ Mọi template sử dụng `viewBox="0 0 96 96"`, class ngoài `.agy-ct-svg-art`
    - `accentColor: '#d7474b'`, `secondaryColor: '#f5c451'`, `overlayRgb: '14, 21, 36'`
    - `atmosphereId: 'stardust'`, `atmosphereIntensity: 68`
    - `bubbleId: 'mu-rom-hai-tac'`, `inputId: 'dai-duong-sunny'`
-   - `pet`: `{ enabled: true, id: 'thousand-sunny', size: 88, mode: 'float', opacity: 96, pos: { xPct: 22, yPct: 14 }, showSpeechOnClick: true }`
+   - `pet`: `{ enabled: true, id: 'luffy-chibi', size: 88, mode: 'float', opacity: 96, pos: { xPct: 22, yPct: 14 }, showSpeechOnClick: true }`
    - `stickers`: `[{ id: 'mu-rom', slot: 'input-top-right', size: 52, glow: true, opacity: 96 }, { id: 'jolly-roger', slot: 'sidebar-bottom-right', size: 46, glow: true, opacity: 94 }]`
 2. **`one-piece-grand-line-bounty`** (`badge: 'One Piece · Sáng'`):
    - `isLight: true`, `wallpaperId: 'one-piece-grand-line-map'`, `dimming: 10`, `wpBlur: 0`, `glassBlur: 4`, `surfaces: { sidebarOpacity: 74, headerOpacity: 70, aiCardOpacity: 80, codeOpacity: 76 }`

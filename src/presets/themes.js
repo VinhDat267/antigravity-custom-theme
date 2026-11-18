@@ -258,8 +258,8 @@ export const THEME_BUNDLES = [
     id: 'one-piece-sunny-sunset',
     name: 'Hoàng Hôn Thousand Sunny',
     nameEn: 'Thousand Sunny Sunset',
-    subtitle: 'Đại Dương Hoàng Hôn + Bụi Sao + Tàu Sunny',
-    subtitleEn: 'Grand Line sunset + Stardust + Thousand Sunny',
+    subtitle: 'Đại Dương Hoàng Hôn + Bụi Sao + Luffy Mũ Rơm',
+    subtitleEn: 'Grand Line sunset + Stardust + Straw Hat Luffy',
     badge: 'One Piece',
     patch: {
       isLight: false,
@@ -275,7 +275,7 @@ export const THEME_BUNDLES = [
       atmosphereIntensity: 68,
       bubbleId: 'mu-rom-hai-tac',
       inputId: 'dai-duong-sunny',
-      pet: { enabled: true, id: 'thousand-sunny', size: 88, mode: 'float', opacity: 96, pos: { xPct: 22, yPct: 14 }, showSpeechOnClick: true },
+      pet: { enabled: true, id: 'luffy-chibi', size: 88, mode: 'float', opacity: 96, pos: { xPct: 22, yPct: 14 }, showSpeechOnClick: true },
       stickers: {
         enabled: true,
         items: [

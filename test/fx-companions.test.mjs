@@ -521,7 +521,7 @@ test('PetStage triggerClickReaction displays localized One Piece quips for chopp
       cancelAnimationFrame() {}
     };
 
-    for (const petId of ['chopper-chibi', 'thousand-sunny']) {
+    for (const petId of ['chopper-chibi', 'thousand-sunny', 'luffy-chibi', 'luffy-gear5']) {
       for (const lang of ['vi', 'en']) {
         const pet = new PetStage({
           getConfig: () => ({

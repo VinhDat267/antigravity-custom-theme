@@ -299,6 +299,68 @@ export const MASCOT_TEMPLATES = {
   <circle cx="76" cy="30" r="2.8" fill="#fef08a" class="agy-ct-anim-twinkle"/>
 </svg>`;
     }
+  },
+  'luffy-chibi': {
+    id: 'luffy-chibi',
+    name: 'Luffy Mũ Rơm',
+    nameEn: 'Straw Hat Luffy',
+    accent: '#d7474b',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M31 78C31 61 38 54 48 54C58 54 65 61 65 78L60 84H36Z" fill="#dc2626" stroke="#991b1b" stroke-width="1.5"/>
+  <path d="M43 55H53L51 77H45Z" fill="#fde68a"/>
+  <path d="M45 61L51 67M51 61L45 67" stroke="#b45309" stroke-width="1.6" stroke-linecap="round"/>
+  <rect x="36" y="75" width="24" height="4.5" rx="2" fill="#f59e0b"/>
+  <circle cx="29" cy="68" r="5" fill="#fde68a" stroke="#d97706" stroke-width="1.2"/>
+  <circle cx="67" cy="68" r="5" fill="#fde68a" stroke="#d97706" stroke-width="1.2"/>
+  <circle cx="48" cy="40" r="16" fill="#fde68a" stroke="#d97706" stroke-width="1.4"/>
+  <path d="M32 37C32 28 39 24 48 24C57 24 64 28 64 37C60 32 56 32 52 36L48 29L43 36C39 32 35 33 32 37Z" fill="#0f172a"/>
+  <g class="agy-ct-anim-blink" style="transform-origin:48px 40px">
+    <circle cx="41.5" cy="40" r="2.6" fill="#0f172a"/>
+    <circle cx="54.5" cy="40" r="2.6" fill="#0f172a"/>
+    <circle cx="42.3" cy="39" r="0.9" fill="#ffffff"/>
+    <circle cx="55.3" cy="39" r="0.9" fill="#ffffff"/>
+  </g>
+  <path d="M52 44Q56 46 60 45M55 43.5L54.5 47M58 44L57.5 47.5" stroke="#991b1b" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M40 46Q48 53 56 46Z" fill="#ffffff" stroke="#7c2d12" stroke-width="1.3" stroke-linejoin="round"/>
+  <path d="M31 27C31 15 39 10 48 10C57 10 65 15 65 27Z" fill="#fde047" stroke="#a16207" stroke-width="1.5"/>
+  <path d="M31 23H65V27H31Z" fill="#dc2626"/>
+  <ellipse cx="48" cy="27.5" rx="25" ry="5.5" fill="#facc15" stroke="#a16207" stroke-width="1.6"/>
+  <circle cx="77" cy="24" r="2.6" fill="#fde047" class="agy-ct-anim-twinkle"/>
+</svg>`;
+    }
+  },
+  'luffy-gear5': {
+    id: 'luffy-gear5',
+    name: 'Luffy Gear 5 (Nika)',
+    nameEn: 'Luffy Gear 5 (Nika)',
+    accent: '#e9d5ff',
+    render(variant = 'pet') {
+      const cls = variant === 'bubble' ? 'agy-ct-svg-art agy-ct-anim-bob' : 'agy-ct-svg-art agy-ct-anim-float';
+      return `<svg class="${cls}" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g class="agy-ct-anim-spark">
+    <path d="M16 32L24 22L21 34L28 29" stroke="#e9d5ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M80 28L71 36L76 41L68 50" stroke="#fde047" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <path d="M22 63C14 57 15 44 25 42C29 36 37 37 40 42H56C59 37 67 36 71 42C81 44 82 57 74 63C69 67 63 63 60 58H36C33 63 27 67 22 63Z" fill="#ffffff" stroke="#c084fc" stroke-width="1.5"/>
+  <path d="M32 78C32 61 38 54 48 54C58 54 64 61 64 78L59 84H37Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.4"/>
+  <path d="M43 55H53L51 76H45Z" fill="#fde68a"/>
+  <path d="M45 61L51 67M51 61L45 67" stroke="#b45309" stroke-width="1.6" stroke-linecap="round"/>
+  <rect x="37" y="75" width="22" height="4.5" rx="2" fill="#c084fc"/>
+  <circle cx="48" cy="40" r="15.5" fill="#fde68a" stroke="#cbd5e1" stroke-width="1.3"/>
+  <path d="M29 37C25 27 31 19 38 20C40 12 52 11 56 18C63 16 70 23 66 33C69 36 66 40 62 39C59 31 54 31 50 35L47 28L42 35C37 31 33 33 29 37Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.4" stroke-linejoin="round"/>
+  <g class="agy-ct-anim-blink" style="transform-origin:48px 40px">
+    <circle cx="41.5" cy="40" r="2.7" fill="#e11d48"/>
+    <circle cx="54.5" cy="40" r="2.7" fill="#e11d48"/>
+    <circle cx="41.5" cy="40" r="1.1" fill="#ffffff"/>
+    <circle cx="54.5" cy="40" r="1.1" fill="#ffffff"/>
+  </g>
+  <path d="M52 44Q56 46 60 45" stroke="#991b1b" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M39 45Q48 54 57 45Z" fill="#ffffff" stroke="#64748b" stroke-width="1.3" stroke-linejoin="round"/>
+  <circle cx="77" cy="20" r="2.8" fill="#fef08a" class="agy-ct-anim-twinkle"/>
+</svg>`;
+    }
   }
 };
 

@@ -221,7 +221,7 @@ export const BUBBLE_PRESETS = [
     text: '#fef3c7',
     shadow: '0 4px 18px rgba(0, 0, 0, 0.45), 0 0 14px rgba(215, 71, 75, 0.24)',
     radius: '14px',
-    mascotId: 'thousand-sunny',
+    mascotId: 'luffy-chibi',
     mascotAlign: 'right-top',
     scrollCaps: false,
     cyberCorners: false,

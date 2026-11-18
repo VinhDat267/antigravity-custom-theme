@@ -48,6 +48,14 @@ const FX_PET_QUIPS = {
   'thousand-sunny': {
     vi: ['Gió thuận rồi, căng buồm ra Tân Thế Giới thôi! 🏴‍☠️', 'Thousand Sunny đang lướt êm ở 120 FPS~ ⛵', 'Coup de Burst tới đích deploy nào! ✨'],
     en: ['Fair winds ahead—set sail for the New World! 🏴‍☠️', 'Cruising smooth at 120 FPS~ ⛵', 'Coup de Burst straight to deploy! ✨']
+  },
+  'luffy-chibi': {
+    vi: ['Ta sẽ trở thành Vua Hải Tặc! 🏴‍☠️', 'Gomu Gomu no... Ship Code Thần Tốc! ⚡', 'Đói quá, xong task này đi ăn thịt nha~ 🍖'],
+    en: ["I'm gonna be King of the Pirates! 🏴‍☠️", 'Gomu Gomu no... Ship Clean Code! ⚡', 'Meat break after this deploy~ 🍖']
+  },
+  'luffy-gear5': {
+    vi: ['Nhịp trống giải phóng vang lên rồi! Shishishi~ 🥁', 'Gear 5 mở hết công suất 120 FPS luôn! ✨', 'Tự do sáng tạo như Thần Mặt Trời Nika! ☁️'],
+    en: ['Drums of Liberation are beating! Shishishi~ 🥁', 'Gear 5 full power at 120 FPS! ✨', 'Infinite freedom with Sun God Nika! ☁️']
   }
 };
 
