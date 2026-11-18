@@ -1,0 +1,18 @@
+{
+  "name": "antigravity-custom-theme",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Zero-patch 60-120fps CDP Custom Theme Suite for Google Antigravity 2.x on Windows",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test",
+    "start": "node cli.mjs start",
+    "stop": "node cli.mjs stop",
+    "status": "node cli.mjs status",
+    "inject": "node cli.mjs inject",
+    "open-settings": "node cli.mjs open-settings",
+    "reset": "node cli.mjs reset",
+    "verify": "node cli.mjs verify"
+  }
+}
