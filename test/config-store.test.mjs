@@ -89,7 +89,7 @@ test('sanitizeImportedConfig clamps bounds, strips local OS paths, and neutraliz
     dimming: 500,
     glassBlur: -9,
     wpBlur: 99,
-    wallpaperId: 'C:\\Users\\VinhDat\\secret.png',
+    wallpaperId: 'C:\\Users\\DemoUser\\secret.png',
     wallpaperPos: '/Users/dev/bg.jpg',
     avatars: { size: 999, radius: -10, rotate: 180, agentMode: 'invalid' },
     pet: { mode: 'teleport', size: 10, opacity: 200 },

@@ -7,7 +7,7 @@
 
 ## 1. Mục đích & Lý do (Intent & Why)
 
-Xây dựng một hệ thống tùy biến giao diện hoàn chỉnh, chạy tại runtime với độ mượt 60–120fps cho **Google Antigravity 2.x Desktop** ([Antigravity.exe](file:///C:/Users/VinhDat/AppData/Local/Programs/antigravity/Antigravity.exe)) trên Windows, hợp nhất thế mạnh của 4 kho lưu trữ đã khảo sát:
+Xây dựng một hệ thống tùy biến giao diện hoàn chỉnh, chạy tại runtime với độ mượt 60–120fps cho **Google Antigravity 2.x Desktop** (`%LOCALAPPDATA%\Programs\antigravity\Antigravity.exe`) trên Windows, hợp nhất thế mạnh của 4 kho lưu trữ đã khảo sát:
 
 - [giakiet22102006/antigravity-custom-theme-skill](https://github.com/giakiet22102006/antigravity-custom-theme-skill): Cơ chế tự bắt cổng `DevToolsActivePort` không sửa file gốc, kiến trúc **Zero Live Blur** (`syncPrebakedGlass` bake sẵn kính mờ lên offscreen canvas để cuộn 60–120fps), cắt lỗ **`evenodd` `clip-path`** bảo vệ split-browser nhúng bên phải, hỗ trợ giao diện Sáng/Tối (`isLight`), script kiểm chứng CDP trực tiếp và đóng gói dạng `SKILL.md`.
 - [dolphintapcode/theme-antigravity](https://github.com/dolphintapcode/theme-antigravity): Động cơ hiệu ứng thời tiết `<canvas>` tiết kiệm CPU (mưa sét, mưa đêm, bụi sao, hoa anh đào, đom đóm, tuyết rơi), 12+ mẫu bong bóng chat kèm mascot, 8+ kiểu viền khung nhập prompt, 14+ sticker SVG + tải sticker riêng kéo thả, 9+ thú cưng tương tác (`float` / `roam` / `follow` kèm lời thoại khi click và hiệu ứng hạt nổ), tích hợp nút mở trong Settings và **Visual DOM Picker**.
@@ -45,7 +45,7 @@ Nhờ kiến trúc **Zero-Patch CDP**, toàn bộ theme sống sót qua mọi đ
 
 Qua kiểm tra thực tế trên phiên bản **Antigravity 2.32.2 (`Electron 44.9.1`)** đang chạy trên máy Windows:
 
-1. **Cơ chế cổng CDP sẵn có:** `Antigravity.exe` chạy sẵn với `--remote-debugging-port=0` và ghi thông tin cổng vào [DevToolsActivePort](file:///C:/Users/VinhDat/AppData/Roaming/Antigravity/DevToolsActivePort) (dòng 1 là số port, dòng 2 là đường dẫn WebSocket browser). Danh sách target lấy từ `http://127.0.0.1:<port>/json/list` (hoặc `/json`).
+1. **Cơ chế cổng CDP sẵn có:** `Antigravity.exe` chạy sẵn với `--remote-debugging-port=0` và ghi thông tin cổng vào `%APPDATA%\Antigravity\DevToolsActivePort` (dòng 1 là số port, dòng 2 là đường dẫn WebSocket browser). Danh sách target lấy từ `http://127.0.0.1:<port>/json/list` (hoặc `/json`).
 2. **Origin thay đổi mỗi lần mở app:** Renderer chính chạy trên cổng loopback ngẫu nhiên mỗi phiên (ví dụ `https://127.0.0.1:61824/...`). Vì `localStorage` và `IndexedDB` bị ràng buộc theo origin (`scheme + host + port`), dữ liệu lưu trên trình duyệt sẽ bị trống ở lần mở sau. Do đó, **`user-data/config.json` và `user-data/media/*.dat` do daemon quản lý là nguồn dữ liệu gốc (authoritative source of truth)**, được nạp ngay từ đầu qua `Page.addScriptToEvaluateOnNewDocument` + `Runtime.evaluate`; `localStorage`/`IndexedDB` chỉ đóng vai trò cache tức thì trong phiên và phục vụ `preview.html`.
 3. **Lọc đúng target renderer `.agy-shell`:** `/json/list` trả về cả các target `plugin://` (`iframe`), `data:text/html` (trang tiện ích/splash) và các page trình duyệt nhúng. Daemon chỉ gắn vào target có `type === "page"`, URL thuộc `http://127.0.0.1` hoặc `https://127.0.0.1`, và xác nhận DOM chứa `.agy-shell` trước khi tiêm giao diện.
 4. **CSP & DOM thực tế đã xác minh:** CSP HTTP của shell chỉ giới hạn `frame-ancestors` (không chặn `style`, `img`, `script` nội bộ), `trustedTypes` ở chế độ không cưỡng bức, và các selector lõi gồm `.agy-shell`, `.agy-inset-shell.browser-hole-ancestor`, `[data-testid="user-message"]`, `[data-testid="user-message-bubble"]`, `[data-testid="agent-response"]`, `[data-testid="settings-button"]` đều tồn tại ổn định.
@@ -85,7 +85,7 @@ flowchart LR
 ```
 
 ### Cấu trúc thư mục dự án
-Vị trí dự án mới: `C:\Users\VinhDat\.gemini\antigravity\scratch\antigravity-custom-theme` (kèm bản sao tài liệu thiết kế tại `docs/superpowers/specs/2026-11-18-antigravity-custom-theme-design.md` sau khi khởi tạo thư mục).
+Vị trí dự án mới: `antigravity-custom-theme/` (kèm bản sao tài liệu thiết kế tại `docs/superpowers/specs/2026-11-18-antigravity-custom-theme-design.md` sau khi khởi tạo thư mục).
 
 ```text
 antigravity-custom-theme/
