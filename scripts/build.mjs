@@ -76,19 +76,40 @@ export function stripModuleSyntax(code) {
     .trim();
 }
 
-export function stripDeletedWallpapers(bundleSource, config) {
-  const hidden = Array.isArray(config?.hiddenWallpapers) ? config.hiddenWallpapers : [];
-  const src = String(bundleSource || '');
-  if (!hidden.length) return src;
-  const stripInBlock = (block) => {
+export function stripHiddenAssets(bundleSource, config) {
+  const hiddenWps = Array.isArray(config?.hiddenWallpapers) ? config.hiddenWallpapers : [];
+  const hiddenPets = Array.isArray(config?.hiddenPets) ? config.hiddenPets : [];
+  let out = String(bundleSource || '');
+
+  const stripListInBlock = (block, list) => {
     let chunk = block;
-    for (const id of hidden) {
+    for (const id of list) {
       chunk = replaceEmbeddedDataUri(chunk, id, "''");
     }
     return chunk;
   };
-  const wpArrayRe = /(\bWALLPAPERS\s*=\s*\[[\s\S]*?\];)/;
-  return wpArrayRe.test(src) ? src.replace(wpArrayRe, (wpBlock) => stripInBlock(wpBlock)) : stripInBlock(src);
+
+  if (hiddenWps.length) {
+    const wpArrayRe = /(\bWALLPAPERS\s*=\s*\[[\s\S]*?\];)/;
+    if (wpArrayRe.test(out)) {
+      out = out.replace(wpArrayRe, (wpBlock) => stripListInBlock(wpBlock, hiddenWps));
+    } else if (!/\bMASCOT_TEMPLATES\s*=/.test(out)) {
+      out = stripListInBlock(out, hiddenWps);
+    }
+  }
+
+  if (hiddenPets.length) {
+    const petObjRe = /(\bMASCOT_TEMPLATES\s*=\s*\{[\s\S]*?\n\s*\};)/;
+    if (petObjRe.test(out)) {
+      out = out.replace(petObjRe, (petBlock) => stripListInBlock(petBlock, hiddenPets));
+    }
+  }
+
+  return out;
+}
+
+export function stripDeletedWallpapers(bundleSource, config) {
+  return stripHiddenAssets(bundleSource, { hiddenWallpapers: config?.hiddenWallpapers });
 }
 
 function collectDiskAssets(dirPath) {

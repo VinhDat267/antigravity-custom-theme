@@ -8,7 +8,9 @@ import vm from 'node:vm';
 import {
   ackDaemonCommand,
   buildNewDocumentWrapper,
+  capDaemonLogFile,
   computeNextPollDelay,
+  isNodeProcessAlive,
   resolvePortFile,
   parsePortFileContent,
   filterAntigravityTargets,
@@ -299,6 +301,29 @@ test('prepareBundleSource memoizes payload by file mtimes and computeNextPollDel
 
     assert.equal(computeNextPollDelay({ hasActiveSessions: false, fastPollMs: 1500, idlePollMs: 8000 }), 1500);
     assert.equal(computeNextPollDelay({ hasActiveSessions: true, fastPollMs: 1500, idlePollMs: 8000 }), 8000);
+
+    // prepareBundleSource strips hiddenPets inside MASCOT_TEMPLATES
+    fs.writeFileSync(
+      bundleFile,
+      `const MASCOT_TEMPLATES = {\n  'luffy-anime': {\n    id: 'luffy-anime',\n    embeddedDataUri: 'data:image/webp;base64,PETDATA',\n    render() { return '<svg></svg>'; }\n  }\n};\n`,
+      'utf8'
+    );
+    fs.writeFileSync(cfgFile, JSON.stringify({ enabled: true, hiddenPets: ['luffy-anime'] }), 'utf8');
+    const future2 = new Date(Date.now() + 5000);
+    fs.utimesSync(bundleFile, future2, future2);
+    fs.utimesSync(cfgFile, future2, future2);
+    const fourth = prepareBundleSource({ rootDir: tmpDir, userDataDir: userDir });
+    assert.ok(!fourth.payload.includes('PETDATA'), 'prepareBundleSource must strip hiddenPets embeddedDataUri');
+
+    // capDaemonLogFile handles missing, small, and oversized log files safely
+    const logFile = path.join(userDir, 'daemon.log');
+    assert.doesNotThrow(() => capDaemonLogFile(logFile, 512));
+    fs.writeFileSync(logFile, `${'old-line-entry\n'.repeat(80)}latest-tail-marker\n`, 'utf8');
+    capDaemonLogFile(logFile, 512);
+    const trimmed = fs.readFileSync(logFile, 'utf8');
+    assert.ok(Buffer.byteLength(trimmed, 'utf8') <= 512, 'capDaemonLogFile must bound log file size');
+    assert.ok(trimmed.endsWith('latest-tail-marker\n'), 'capDaemonLogFile must preserve newest tail lines');
+    assert.equal(isNodeProcessAlive(process.pid), true);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
