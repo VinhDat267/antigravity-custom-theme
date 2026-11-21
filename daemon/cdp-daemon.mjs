@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import { buildBundle, stripDeletedWallpapers, stripHiddenAssets } from '../scripts/build.mjs';
 import { sanitizeImportedConfig } from '../src/core/config-store.js';
-import { resolveThemeHome } from './paths.mjs';
+import { homePaths, resolveThemeHome } from './paths.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -99,10 +99,144 @@ function readJsonSafe(filePath) {
     if (!fs.existsSync(filePath)) return null;
     const raw = fs.readFileSync(filePath, 'utf8');
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : null;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
   } catch {
     return null;
   }
+}
+
+const FORBIDDEN_UNKNOWN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+const MAX_UNKNOWN_BYTES = 64 * 1024;
+let lastMonotonicTs = 0;
+
+function nextMonotonicTs() {
+  const now = Date.now();
+  lastMonotonicTs = now > lastMonotonicTs ? now : lastMonotonicTs + 1;
+  return lastMonotonicTs;
+}
+
+function isPlainRecord(val) {
+  if (!val || typeof val !== 'object' || Array.isArray(val)) return false;
+  const proto = Object.getPrototypeOf(val);
+  return proto === null || Object.getPrototypeOf(proto) === null;
+}
+
+function parseSchemaVersion(val) {
+  return typeof val === 'number' && Number.isInteger(val) && val >= 0 ? val : 0;
+}
+
+function cleanJsonValue(val, depth = 0) {
+  if (depth > 16) return undefined;
+  if (val === null) return null;
+  const t = typeof val;
+  if (t === 'string' || t === 'boolean') return val;
+  if (t === 'number') return Number.isFinite(val) ? val : undefined;
+  if (Array.isArray(val)) {
+    const out = [];
+    for (let i = 0; i < val.length; i += 1) {
+      const cleaned = cleanJsonValue(val[i], depth + 1);
+      out.push(cleaned === undefined ? null : cleaned);
+    }
+    return out;
+  }
+  if (isPlainRecord(val)) {
+    const out = {};
+    for (const key of Object.keys(val)) {
+      if (FORBIDDEN_UNKNOWN_KEYS.has(key)) continue;
+      const cleaned = cleanJsonValue(val[key], depth + 1);
+      if (cleaned !== undefined) {
+        out[key] = cleaned;
+      }
+    }
+    return out;
+  }
+  return undefined;
+}
+
+function measureUnknownBytes(baselineObj, targetObj) {
+  if (!isPlainRecord(targetObj)) return 0;
+  let bytes = 0;
+  for (const key of Object.keys(targetObj)) {
+    if (FORBIDDEN_UNKNOWN_KEYS.has(key)) continue;
+    if (isPlainRecord(baselineObj) && Object.prototype.hasOwnProperty.call(baselineObj, key)) {
+      if (isPlainRecord(baselineObj[key]) && isPlainRecord(targetObj[key])) {
+        bytes += measureUnknownBytes(baselineObj[key], targetObj[key]);
+      }
+      continue;
+    }
+    bytes += Buffer.byteLength(JSON.stringify(key), 'utf8') + Buffer.byteLength(JSON.stringify(targetObj[key]), 'utf8') + 2;
+  }
+  return bytes;
+}
+
+function mergeMissingUnknownFields(existingObj, targetObj, budget) {
+  if (!isPlainRecord(existingObj) || !isPlainRecord(targetObj)) return;
+  for (const key of Object.keys(existingObj)) {
+    if (FORBIDDEN_UNKNOWN_KEYS.has(key)) continue;
+    if (Object.prototype.hasOwnProperty.call(targetObj, key)) {
+      if (isPlainRecord(existingObj[key]) && isPlainRecord(targetObj[key])) {
+        mergeMissingUnknownFields(existingObj[key], targetObj[key], budget);
+      }
+      continue;
+    }
+    const cleaned = cleanJsonValue(existingObj[key]);
+    if (cleaned === undefined) continue;
+    const cost = Buffer.byteLength(JSON.stringify(key), 'utf8') + Buffer.byteLength(JSON.stringify(cleaned), 'utf8') + 2;
+    if (cost <= budget.remaining) {
+      targetObj[key] = cleaned;
+      budget.remaining -= cost;
+    }
+  }
+}
+
+function quarantineCorruptConfig(configPath) {
+  const corruptPath = path.join(path.dirname(configPath), `config.corrupt-${nextMonotonicTs()}.json`);
+  try {
+    fs.renameSync(configPath, corruptPath);
+  } catch {
+    try {
+      fs.copyFileSync(configPath, corruptPath);
+      fs.unlinkSync(configPath);
+    } catch {
+      // Ignore if unreadable/locked
+    }
+  }
+  return corruptPath;
+}
+
+export function backupConfigBeforeSchemaBump(homeDir, existingRaw, nextSchema) {
+  if (!isPlainRecord(existingRaw) || !Number.isInteger(nextSchema)) return null;
+  const oldSchema = parseSchemaVersion(existingRaw.schemaVersion);
+  if (nextSchema <= oldSchema) return null;
+
+  const { backupsDir } = homePaths(homeDir);
+  fs.mkdirSync(backupsDir, { recursive: true });
+  const ts = nextMonotonicTs();
+  const backupPath = path.join(backupsDir, `config.schema${oldSchema}.${ts}.json`);
+  atomicWriteFile(backupPath, JSON.stringify(existingRaw, null, 2));
+
+  const pattern = new RegExp(`^config\\.schema${oldSchema}\\.(\\d+)\\.json$`);
+  const entries = fs
+    .readdirSync(backupsDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => {
+      const m = pattern.exec(entry.name);
+      return m ? { name: entry.name, ts: Number(m[1]) } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.ts - b.ts);
+
+  if (entries.length > 3) {
+    for (const stale of entries.slice(0, entries.length - 3)) {
+      try {
+        fs.unlinkSync(path.join(backupsDir, stale.name));
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  }
+
+  return backupPath;
 }
 
 export function persistBridgeMessage(userDataDir, rawJson) {
@@ -118,6 +252,9 @@ export function persistBridgeMessage(userDataDir, rawJson) {
     if (!msg.data || typeof msg.data !== 'object' || Array.isArray(msg.data)) return null;
     const configPath = path.join(userDataDir, 'config.json');
     const existing = readJsonSafe(configPath);
+    if (!existing && fs.existsSync(configPath)) {
+      quarantineCorruptConfig(configPath);
+    }
     const hasValidTs = Number.isFinite(Number(msg.data.__savedAt));
     const nextTs = hasValidTs ? Number(msg.data.__savedAt) : 0;
     if (existing) {
@@ -126,7 +263,17 @@ export function persistBridgeMessage(userDataDir, rawJson) {
       if (!hasValidTs && prevTs > 0) return null;
       if (nextTs < prevTs) return null;
     }
-    const clean = sanitizeImportedConfig(msg.data);
+    const clean = sanitizeImportedConfig(msg.data, { preserveUnknown: true });
+    if (existing) {
+      const baseline = sanitizeImportedConfig(clean, { preserveUnknown: false });
+      const usedBytes = measureUnknownBytes(baseline, clean);
+      mergeMissingUnknownFields(existing, clean, { remaining: Math.max(0, MAX_UNKNOWN_BYTES - usedBytes) });
+      const existingSchema = parseSchemaVersion(existing.schemaVersion);
+      clean.schemaVersion = Math.max(existingSchema, parseSchemaVersion(clean.schemaVersion));
+      if (clean.schemaVersion > existingSchema) {
+        backupConfigBeforeSchemaBump(userDataDir, existing, clean.schemaVersion);
+      }
+    }
     atomicWriteFile(configPath, JSON.stringify(clean, null, 2));
     return 'config';
   }
@@ -150,7 +297,7 @@ export function persistBridgeMessage(userDataDir, rawJson) {
 
 export function loadBootPayload(userDataDir) {
   const rawConfig = readJsonSafe(path.join(userDataDir, 'config.json'));
-  const config = rawConfig ? sanitizeImportedConfig(rawConfig) : null;
+  const config = rawConfig ? sanitizeImportedConfig(rawConfig, { preserveUnknown: true }) : null;
   const media = {};
   for (const slot of VALID_MEDIA_SLOTS) {
     const slotPath = path.join(userDataDir, 'media', `${slot}.dat`);

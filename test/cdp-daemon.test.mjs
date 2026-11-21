@@ -7,10 +7,12 @@ import vm from 'node:vm';
 
 import {
   ackDaemonCommand,
+  backupConfigBeforeSchemaBump,
   buildNewDocumentWrapper,
   capDaemonLogFile,
   computeNextPollDelay,
   isNodeProcessAlive,
+  loadBootPayload,
   resolvePortFile,
   parsePortFileContent,
   filterAntigravityTargets,
@@ -347,6 +349,109 @@ test('daemon defaults resolve to resolveThemeHome() instead of <root>/user-data'
     } else {
       process.env.AGY_THEME_HOME = prevHome;
     }
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('persistBridgeMessage never lowers schemaVersion and keeps unknown fields', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-ct-schema-preserve-'));
+  try {
+    const cfgPath = path.join(tmpDir, 'config.json');
+    fs.writeFileSync(
+      cfgPath,
+      JSON.stringify({
+        schemaVersion: 3,
+        dimming: 26,
+        futureFlag: true,
+        pet: { id: 'loi-kiem', futureMood: 'happy' },
+        __savedAt: 100
+      }),
+      'utf8'
+    );
+
+    const res = persistBridgeMessage(
+      tmpDir,
+      JSON.stringify({
+        type: 'config',
+        data: { schemaVersion: 1, dimming: 45, pet: { id: 'meo-than' }, __savedAt: 200 }
+      })
+    );
+    assert.equal(res, 'config');
+
+    const saved = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+    assert.equal(saved.schemaVersion, 3);
+    assert.equal(saved.dimming, 45);
+    assert.equal(saved.pet.id, 'meo-than');
+    assert.equal(saved.futureFlag, true);
+    assert.equal(saved.pet.futureMood, 'happy');
+
+    const boot = loadBootPayload(tmpDir);
+    assert.equal(boot.config.schemaVersion, 3);
+    assert.equal(boot.config.futureFlag, true);
+    assert.equal(boot.config.pet.futureMood, 'happy');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('persistBridgeMessage writes one backup before the first schema bump, max 3 per schema', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-ct-schema-backup-'));
+  try {
+    const cfgPath = path.join(tmpDir, 'config.json');
+    const backupsDir = path.join(tmpDir, 'backups');
+    fs.writeFileSync(cfgPath, JSON.stringify({ enabled: true, dimming: 20, __savedAt: 100 }), 'utf8');
+
+    const bump1 = persistBridgeMessage(
+      tmpDir,
+      JSON.stringify({ type: 'config', data: { enabled: true, dimming: 25, schemaVersion: 1, __savedAt: 200 } })
+    );
+    assert.equal(bump1, 'config');
+    let files = fs.readdirSync(backupsDir).filter((f) => /^config\.schema0\.\d+\.json$/.test(f));
+    assert.equal(files.length, 1);
+
+    // Subsequent writes at the same schema must not add more backups
+    const sameSchema = persistBridgeMessage(
+      tmpDir,
+      JSON.stringify({ type: 'config', data: { enabled: true, dimming: 30, schemaVersion: 1, __savedAt: 300 } })
+    );
+    assert.equal(sameSchema, 'config');
+    files = fs.readdirSync(backupsDir).filter((f) => /^config\.schema0\.\d+\.json$/.test(f));
+    assert.equal(files.length, 1);
+
+    // Total 4 bumps for schema 0 => retains only the 3 newest backups
+    for (let i = 2; i <= 4; i += 1) {
+      backupConfigBeforeSchemaBump(tmpDir, { dimming: i * 10 }, 1);
+    }
+    files = fs.readdirSync(backupsDir).filter((f) => /^config\.schema0\.\d+\.json$/.test(f)).sort();
+    assert.equal(files.length, 3);
+    const oldestRemaining = JSON.parse(fs.readFileSync(path.join(backupsDir, files[0]), 'utf8'));
+    const newestRemaining = JSON.parse(fs.readFileSync(path.join(backupsDir, files[2]), 'utf8'));
+    assert.equal(oldestRemaining.dimming, 20);
+    assert.equal(newestRemaining.dimming, 40);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('persistBridgeMessage quarantines a corrupt config.json before writing', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-ct-corrupt-cfg-'));
+  try {
+    const cfgPath = path.join(tmpDir, 'config.json');
+    fs.writeFileSync(cfgPath, '{broken json', 'utf8');
+
+    const res = persistBridgeMessage(
+      tmpDir,
+      JSON.stringify({ type: 'config', data: { enabled: true, dimming: 35, __savedAt: 200 } })
+    );
+    assert.equal(res, 'config');
+
+    const saved = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+    assert.equal(saved.dimming, 35);
+
+    const corruptFiles = fs.readdirSync(tmpDir).filter((f) => /^config\.corrupt-\d+\.json$/.test(f));
+    assert.equal(corruptFiles.length, 1);
+    assert.equal(fs.readFileSync(path.join(tmpDir, corruptFiles[0]), 'utf8'), '{broken json');
+  } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });

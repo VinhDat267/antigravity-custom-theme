@@ -3,8 +3,11 @@ import assert from 'node:assert/strict';
 
 import {
   MEDIA_SLOTS,
+  CONFIG_SCHEMA_VERSION,
+  CONFIG_MIGRATIONS,
   DEFAULT_CONFIG,
   mergeConfig,
+  migrateConfig,
   sanitizeCssText,
   sanitizeImportedConfig,
   exportPortableConfig,
@@ -15,6 +18,7 @@ import {
   saveCustomMedia,
   deleteCustomMedia
 } from '../src/core/config-store.js';
+import { buildStylesheet } from '../src/core/surface-engine.js';
 
 function createMockWindow({ local = {}, boot = null } = {}) {
   const store = new Map(Object.entries(local));
@@ -272,4 +276,212 @@ test('loadCustomMediaMap batches IndexedDB reads into one readonly transaction a
   });
   const frozenMap = await loadCustomMediaMap(frozenWin);
   assert.equal(frozenMap.userAvatar, 'data:image/webp;base64,FROZEN_AV');
+});
+
+test('every CONFIG_MIGRATIONS step is additive', () => {
+  assert.equal(CONFIG_SCHEMA_VERSION, 1);
+  assert.equal(DEFAULT_CONFIG.schemaVersion, 1);
+  assert.ok(Array.isArray(CONFIG_MIGRATIONS) && CONFIG_MIGRATIONS.length >= 1);
+
+  const schema0Fixture = {
+    enabled: true,
+    lang: 'en',
+    isLight: false,
+    activeBundleId: 'thunder-samurai-pack',
+    wallpaperId: 'thunder-samurai',
+    wallpaperFit: 'cover',
+    wallpaperPos: 'center center',
+    dimming: 26,
+    wpBlur: 0,
+    glassBlur: 4,
+    surfaces: { sidebarOpacity: 52, headerOpacity: 44, aiCardOpacity: 64, codeOpacity: 62 },
+    accentColor: '#f5c451',
+    secondaryColor: '#60a5fa',
+    overlayRgb: '11, 16, 27',
+    atmosphereId: 'thunder-rain',
+    atmosphereIntensity: 65,
+    bubbleId: 'loi-kiem',
+    bubbleMascotEnabled: true,
+    inputId: 'loi-anh-kim',
+    avatars: { userEnabled: false, agentEnabled: true, agentMode: 'star', size: 32, radius: 50, rotate: 0 },
+    pet: {
+      enabled: true,
+      id: 'loi-kiem',
+      size: 88,
+      opacity: 96,
+      mode: 'float',
+      pos: { xPct: 22, yPct: 14 },
+      showSpeechOnClick: true
+    },
+    stickers: {
+      enabled: true,
+      items: [{ id: 'bua-loi-an', slot: 'input-top-right', size: 52, glow: true, opacity: 96, pos: { xPct: 82, yPct: 72 } }]
+    },
+    customCss: '',
+    launcherPill: { enabled: true, corner: 'bottom-right' },
+    customSelectors: {
+      appShell: '',
+      sidebar: '',
+      mainCanvas: '',
+      chatBubble: '',
+      chatInput: '',
+      settingsNavList: '',
+      settingsContent: ''
+    },
+    hiddenWallpapers: [],
+    hiddenStickers: [],
+    hiddenPets: [],
+    customBundles: [],
+    __savedAt: 100
+  };
+
+  const fixturesBySchema = {
+    0: schema0Fixture
+  };
+
+  const isPlain = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
+  const collectLeafPaths = (obj, prefix = []) => {
+    const leaves = [];
+    for (const [k, v] of Object.entries(obj)) {
+      const nextPath = [...prefix, k];
+      if (isPlain(v) && Object.keys(v).length > 0) {
+        leaves.push(...collectLeafPaths(v, nextPath));
+      } else {
+        leaves.push([nextPath, v]);
+      }
+    }
+    return leaves;
+  };
+  const readPath = (obj, parts) => {
+    let cur = obj;
+    for (const part of parts) {
+      if (!cur || typeof cur !== 'object' || !Object.prototype.hasOwnProperty.call(cur, part)) {
+        return { found: false, value: undefined };
+      }
+      cur = cur[part];
+    }
+    return { found: true, value: cur };
+  };
+
+  for (const step of CONFIG_MIGRATIONS) {
+    assert.equal(step.to, step.from + 1);
+    const input = fixturesBySchema[step.from];
+    assert.ok(input, `Missing fixture for schema ${step.from}`);
+    const clonedInput = JSON.parse(JSON.stringify(input));
+    const output = step.up(clonedInput);
+    assert.equal(output.schemaVersion, step.to);
+    for (const [leafPath, leafVal] of collectLeafPaths(input)) {
+      if (step.from > 0 && leafPath.length === 1 && leafPath[0] === 'schemaVersion') continue;
+      const got = readPath(output, leafPath);
+      assert.equal(got.found, true, `Expected additive migration to keep path ${leafPath.join('.')}`);
+      assert.deepEqual(got.value, leafVal);
+    }
+    fixturesBySchema[step.to] = output;
+  }
+});
+
+test('migrateConfig upgrades missing schemaVersion to 1 and leaves higher schema untouched', () => {
+  const v0 = migrateConfig({ dimming: 40, pet: { id: 'meo-than' } });
+  assert.equal(v0.fromVersion, 0);
+  assert.equal(v0.toVersion, 1);
+  assert.equal(v0.migrated, true);
+  assert.equal(v0.config.schemaVersion, 1);
+  assert.equal(v0.config.dimming, 40);
+  assert.equal(v0.config.pet.id, 'meo-than');
+
+  const v1 = migrateConfig({ schemaVersion: 1, dimming: 33 });
+  assert.equal(v1.fromVersion, 1);
+  assert.equal(v1.toVersion, 1);
+  assert.equal(v1.migrated, false);
+  assert.equal(v1.config.schemaVersion, 1);
+
+  const v3 = migrateConfig({ schemaVersion: 3, futureFlag: true, dimming: 25 });
+  assert.equal(v3.fromVersion, 3);
+  assert.equal(v3.toVersion, 3);
+  assert.equal(v3.migrated, false);
+  assert.equal(v3.config.schemaVersion, 3);
+  assert.equal(v3.config.futureFlag, true);
+
+  const upgradedWin = createMockWindow({
+    boot: { config: { wallpaperId: 'kanagawa-wave', __savedAt: 500 }, media: {} }
+  });
+  assert.equal(loadConfig(upgradedWin).schemaVersion, 1);
+
+  const higherWin = createMockWindow({
+    boot: { config: { schemaVersion: 3, futureFlag: true, __savedAt: 500 }, media: {} }
+  });
+  const higherLoaded = loadConfig(higherWin);
+  assert.equal(higherLoaded.schemaVersion, 3);
+  assert.equal(higherLoaded.futureFlag, true);
+});
+
+test('sanitizeImportedConfig preserveUnknown keeps unknown nested keys and drops __proto__', () => {
+  const out = sanitizeImportedConfig(
+    {
+      schemaVersion: 3,
+      futureFlag: true,
+      pet: { futureMood: 'happy' },
+      ['__proto__']: { x: 1 },
+      constructor: { y: 2 },
+      prototype: { z: 3 },
+      nonJsonFn: () => 1
+    },
+    { preserveUnknown: true }
+  );
+  assert.equal(out.schemaVersion, 3);
+  assert.equal(out.futureFlag, true);
+  assert.equal(out.pet.futureMood, 'happy');
+  assert.equal(({}).x, undefined);
+  assert.equal(Object.prototype.hasOwnProperty.call(out, '__proto__'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(out, 'constructor'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(out, 'prototype'), false);
+  assert.equal(out.nonJsonFn, undefined);
+
+  const capped = sanitizeImportedConfig(
+    {
+      schemaVersion: 2,
+      smallUnknown: 'kept',
+      hugeUnknown: 'x'.repeat(70 * 1024)
+    },
+    { preserveUnknown: true }
+  );
+  assert.equal(capped.smallUnknown, 'kept');
+  assert.equal(capped.hugeUnknown, undefined);
+});
+
+test('sanitizeImportedConfig without preserveUnknown still drops unknown keys (import path)', () => {
+  const out = sanitizeImportedConfig({
+    schemaVersion: 2,
+    futureFlag: true,
+    pet: { id: 'loi-kiem', futureMood: 'happy' }
+  });
+  assert.equal(out.schemaVersion, 2);
+  assert.equal(out.futureFlag, undefined);
+  assert.equal(out.pet.futureMood, undefined);
+  assert.equal(out.pet.id, 'loi-kiem');
+});
+
+test('unknown preset ids render defaults without rewriting config', () => {
+  const cfg = {
+    ...DEFAULT_CONFIG,
+    activeBundleId: 'missing-bundle',
+    wallpaperId: 'missing-wp',
+    bubbleId: 'missing',
+    inputId: 'missing-input',
+    pet: { ...DEFAULT_CONFIG.pet, id: 'missing-pet' },
+    stickers: {
+      enabled: true,
+      items: [{ id: 'missing-sticker', slot: 'free', size: 48, glow: true, opacity: 90, pos: { xPct: 50, yPct: 50 } }]
+    }
+  };
+  const before = JSON.stringify(cfg);
+  const css = buildStylesheet(cfg, {});
+  assert.ok(typeof css === 'string' && css.length > 100);
+  assert.equal(JSON.stringify(cfg), before);
+
+  const sanitized = sanitizeImportedConfig(cfg, { preserveUnknown: true });
+  assert.equal(sanitized.bubbleId, 'missing');
+  assert.equal(sanitized.wallpaperId, 'missing-wp');
+  assert.equal(sanitized.inputId, 'missing-input');
+  assert.equal(sanitized.pet.id, 'missing-pet');
 });
