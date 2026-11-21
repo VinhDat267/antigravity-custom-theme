@@ -52,9 +52,12 @@ export function readPackageVersion(rootDir) {
   const pkgPath = path.join(rootDir, 'package.json');
   const raw = fs.readFileSync(pkgPath, 'utf8');
   const parsed = JSON.parse(raw);
-  const version = typeof parsed?.version === 'string' ? parsed.version.trim() : '';
+  const version = typeof parsed?.version === 'string' ? parsed.version : '';
   if (!version) {
     throw new Error(`Missing version in ${pkgPath}`);
+  }
+  if (!/^\d+\.\d+\.\d+$/.test(version)) {
+    throw new Error(`Invalid version "${version}" in ${pkgPath}`);
   }
   return version;
 }

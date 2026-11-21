@@ -111,3 +111,19 @@ test('readPackageVersion returns package.json version', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('readPackageVersion rejects non x.y.z versions', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-pkg-badver-'));
+  try {
+    const pkgPath = path.join(tmpDir, 'package.json');
+    for (const bad of ['1.0', '1.0.0-beta.1', "1.0.0'; alert(1);//"]) {
+      fs.writeFileSync(pkgPath, JSON.stringify({ name: PACKAGE_NAME, version: bad }), 'utf8');
+      assert.throws(() => readPackageVersion(tmpDir), {
+        name: 'Error',
+        message: `Invalid version "${bad}" in ${pkgPath}`
+      });
+    }
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
