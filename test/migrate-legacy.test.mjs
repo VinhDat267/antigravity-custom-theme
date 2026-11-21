@@ -68,17 +68,109 @@ test('no legacy dir => reason no-legacy; same path => same-dir', () => {
     });
 
     const emptyLegacy = path.join(tmpDir, 'empty-legacy');
+    const homeDir2 = path.join(tmpDir, 'home-empty');
     fs.mkdirSync(emptyLegacy, { recursive: true });
-    assert.deepEqual(migrateLegacyUserData({ legacyDir: emptyLegacy, homeDir }), {
+    assert.deepEqual(migrateLegacyUserData({ legacyDir: emptyLegacy, homeDir: homeDir2 }), {
       migrated: false,
       reason: 'no-legacy'
     });
 
-    fs.mkdirSync(homeDir, { recursive: true });
-    assert.deepEqual(migrateLegacyUserData({ legacyDir: homeDir, homeDir }), {
+    const homeSame = path.join(tmpDir, 'home-same');
+    fs.mkdirSync(homeSame, { recursive: true });
+    assert.deepEqual(migrateLegacyUserData({ legacyDir: homeSame, homeDir: homeSame }), {
       migrated: false,
       reason: 'same-dir'
     });
+    assert.equal(fs.existsSync(path.join(homeSame, 'legacy-migration.json')), false);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('does not resurrect legacy config after reset --wipe', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-migrate-once-'));
+  try {
+    const legacyDir = path.join(tmpDir, 'legacy');
+    const homeDir = path.join(tmpDir, 'home');
+    fs.mkdirSync(legacyDir, { recursive: true });
+    fs.writeFileSync(path.join(legacyDir, 'config.json'), JSON.stringify({ enabled: true, dimming: 30 }), 'utf8');
+
+    const first = migrateLegacyUserData({ legacyDir, homeDir });
+    assert.deepEqual(first, { migrated: true, reason: 'ok' });
+    assert.equal(fs.existsSync(path.join(homeDir, 'config.json')), true);
+    assert.equal(fs.existsSync(path.join(homeDir, 'legacy-migration.json')), true);
+
+    // Simulate reset --wipe removing home config.json
+    fs.unlinkSync(path.join(homeDir, 'config.json'));
+
+    const second = migrateLegacyUserData({ legacyDir, homeDir });
+    assert.deepEqual(second, { migrated: false, reason: 'already-checked' });
+    assert.equal(fs.existsSync(path.join(homeDir, 'config.json')), false);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('writes the marker even when nothing was migrated', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-migrate-marker-'));
+  try {
+    const missingLegacy = path.join(tmpDir, 'missing-legacy');
+    const homeA = path.join(tmpDir, 'home-a');
+    const resA = migrateLegacyUserData({ legacyDir: missingLegacy, homeDir: homeA });
+    assert.deepEqual(resA, { migrated: false, reason: 'no-legacy' });
+    const markerA = JSON.parse(fs.readFileSync(path.join(homeA, 'legacy-migration.json'), 'utf8'));
+    assert.equal(typeof markerA.checkedAt, 'number');
+    assert.equal(markerA.legacyDir, missingLegacy);
+    assert.deepEqual(markerA.result, { migrated: false, reason: 'no-legacy' });
+
+    const legacyDir = path.join(tmpDir, 'legacy');
+    const homeB = path.join(tmpDir, 'home-b');
+    fs.mkdirSync(legacyDir, { recursive: true });
+    fs.mkdirSync(homeB, { recursive: true });
+    fs.writeFileSync(path.join(legacyDir, 'config.json'), JSON.stringify({ enabled: true }), 'utf8');
+    fs.writeFileSync(path.join(homeB, 'config.json'), JSON.stringify({ enabled: false }), 'utf8');
+    const resB = migrateLegacyUserData({ legacyDir, homeDir: homeB });
+    assert.deepEqual(resB, { migrated: false, reason: 'home-config-present' });
+    const markerB = JSON.parse(fs.readFileSync(path.join(homeB, 'legacy-migration.json'), 'utf8'));
+    assert.equal(typeof markerB.checkedAt, 'number');
+    assert.equal(markerB.legacyDir, legacyDir);
+    assert.deepEqual(markerB.result, { migrated: false, reason: 'home-config-present' });
+
+    const homeC = path.join(tmpDir, 'home-c');
+    fs.mkdirSync(homeC, { recursive: true });
+    const resC = migrateLegacyUserData({ legacyDir: homeC, homeDir: homeC });
+    assert.deepEqual(resC, { migrated: false, reason: 'same-dir' });
+    assert.equal(fs.existsSync(path.join(homeC, 'legacy-migration.json')), false);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('force: true bypasses the marker but still refuses an existing home config', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-migrate-force-'));
+  try {
+    const legacyDir = path.join(tmpDir, 'legacy');
+    const homeDir = path.join(tmpDir, 'home');
+    fs.mkdirSync(legacyDir, { recursive: true });
+    const legacyCfg = JSON.stringify({ enabled: true, dimming: 15 });
+    fs.writeFileSync(path.join(legacyDir, 'config.json'), legacyCfg, 'utf8');
+
+    assert.deepEqual(migrateLegacyUserData({ legacyDir, homeDir }), { migrated: true, reason: 'ok' });
+    fs.unlinkSync(path.join(homeDir, 'config.json'));
+    assert.deepEqual(migrateLegacyUserData({ legacyDir, homeDir }), {
+      migrated: false,
+      reason: 'already-checked'
+    });
+
+    const forced = migrateLegacyUserData({ legacyDir, homeDir, force: true });
+    assert.deepEqual(forced, { migrated: true, reason: 'ok' });
+    assert.equal(fs.readFileSync(path.join(homeDir, 'config.json'), 'utf8'), legacyCfg);
+
+    const customCfg = JSON.stringify({ custom: 1 });
+    fs.writeFileSync(path.join(homeDir, 'config.json'), customCfg, 'utf8');
+    const blocked = migrateLegacyUserData({ legacyDir, homeDir, force: true });
+    assert.deepEqual(blocked, { migrated: false, reason: 'home-config-present' });
+    assert.equal(fs.readFileSync(path.join(homeDir, 'config.json'), 'utf8'), customCfg);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }

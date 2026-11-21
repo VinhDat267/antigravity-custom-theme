@@ -43,6 +43,7 @@ test('homePaths returns all canonical filenames under theme home', () => {
     hostState: path.join(home, 'host-state.json'),
     updateState: path.join(home, 'update-state.json'),
     hostVersion: path.join(home, 'host-version.json'),
+    legacyMigration: path.join(home, 'legacy-migration.json'),
     updatesDir: path.join(home, 'updates'),
     backupsDir: path.join(home, 'backups')
   });

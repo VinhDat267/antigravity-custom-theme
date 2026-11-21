@@ -454,6 +454,7 @@ test('prepareBundleSource without allowBuild throws when dist is missing', ...);
   - `runSetup({ home, packageDir, mode, from, deps }) -> Promise<{ ok, actions: string[], warnings: string[] }>`:
     - `deps` gồm `createShortcut`, `startDaemon`, `findLegacyCloneDir`, `stopLegacyDaemon`, `readActivePort`, `paths` (Startup, Start Menu);
     - chế độ source: `ok: true`, `actions: []`, kèm lời giải thích.
+    - `setup --from <dir>` gọi `migrateLegacyUserData` với `force: true`.
   - `runUninstall({ home, purge, deps }) -> Promise<{ ok, actions }>`
   - Vị trí file:
     - Startup: `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\Antigravity Custom Theme.lnk`, trỏ tới `wscript.exe "<home>\startup.vbs"`;
