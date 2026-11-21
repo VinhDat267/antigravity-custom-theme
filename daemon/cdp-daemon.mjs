@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { buildBundle, stripDeletedWallpapers, stripHiddenAssets } from '../scripts/build.mjs';
-import { sanitizeImportedConfig } from '../src/core/config-store.js';
+import { preserveUnknownFields, sanitizeImportedConfig } from '../src/core/config-store.js';
 import { homePaths, resolveThemeHome } from './paths.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -94,12 +94,6 @@ function atomicWriteFile(filePath, content) {
   fs.renameSync(tmpPath, filePath);
 }
 
-function isPlainRecord(val) {
-  if (!val || typeof val !== 'object' || Array.isArray(val)) return false;
-  const proto = Object.getPrototypeOf(val);
-  return proto === null || Object.getPrototypeOf(proto) === null;
-}
-
 export function readJsonFile(filePath) {
   let raw;
   try {
@@ -112,7 +106,7 @@ export function readJsonFile(filePath) {
   }
   try {
     const parsed = JSON.parse(raw);
-    if (isPlainRecord(parsed)) {
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
       return { status: 'ok', value: parsed };
     }
     return { status: 'invalid', value: null };
@@ -126,8 +120,6 @@ function readJsonSafe(filePath) {
   return res.status === 'ok' ? res.value : null;
 }
 
-const FORBIDDEN_UNKNOWN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
-const MAX_UNKNOWN_BYTES = 64 * 1024;
 let lastMonotonicTs = 0;
 
 function nextMonotonicTs() {
@@ -138,70 +130,6 @@ function nextMonotonicTs() {
 
 function parseSchemaVersion(val) {
   return typeof val === 'number' && Number.isInteger(val) && val >= 0 ? val : 0;
-}
-
-function cleanJsonValue(val, depth = 0) {
-  if (depth > 16) return undefined;
-  if (val === null) return null;
-  const t = typeof val;
-  if (t === 'string' || t === 'boolean') return val;
-  if (t === 'number') return Number.isFinite(val) ? val : undefined;
-  if (Array.isArray(val)) {
-    const out = [];
-    for (let i = 0; i < val.length; i += 1) {
-      const cleaned = cleanJsonValue(val[i], depth + 1);
-      out.push(cleaned === undefined ? null : cleaned);
-    }
-    return out;
-  }
-  if (isPlainRecord(val)) {
-    const out = {};
-    for (const key of Object.keys(val)) {
-      if (FORBIDDEN_UNKNOWN_KEYS.has(key)) continue;
-      const cleaned = cleanJsonValue(val[key], depth + 1);
-      if (cleaned !== undefined) {
-        out[key] = cleaned;
-      }
-    }
-    return out;
-  }
-  return undefined;
-}
-
-function measureUnknownBytes(baselineObj, targetObj) {
-  if (!isPlainRecord(targetObj)) return 0;
-  let bytes = 0;
-  for (const key of Object.keys(targetObj)) {
-    if (FORBIDDEN_UNKNOWN_KEYS.has(key)) continue;
-    if (isPlainRecord(baselineObj) && Object.prototype.hasOwnProperty.call(baselineObj, key)) {
-      if (isPlainRecord(baselineObj[key]) && isPlainRecord(targetObj[key])) {
-        bytes += measureUnknownBytes(baselineObj[key], targetObj[key]);
-      }
-      continue;
-    }
-    bytes += Buffer.byteLength(JSON.stringify(key), 'utf8') + Buffer.byteLength(JSON.stringify(targetObj[key]), 'utf8') + 2;
-  }
-  return bytes;
-}
-
-function mergeMissingUnknownFields(existingObj, targetObj, budget) {
-  if (!isPlainRecord(existingObj) || !isPlainRecord(targetObj)) return;
-  for (const key of Object.keys(existingObj)) {
-    if (FORBIDDEN_UNKNOWN_KEYS.has(key)) continue;
-    if (Object.prototype.hasOwnProperty.call(targetObj, key)) {
-      if (isPlainRecord(existingObj[key]) && isPlainRecord(targetObj[key])) {
-        mergeMissingUnknownFields(existingObj[key], targetObj[key], budget);
-      }
-      continue;
-    }
-    const cleaned = cleanJsonValue(existingObj[key]);
-    if (cleaned === undefined) continue;
-    const cost = Buffer.byteLength(JSON.stringify(key), 'utf8') + Buffer.byteLength(JSON.stringify(cleaned), 'utf8') + 2;
-    if (cost <= budget.remaining) {
-      targetObj[key] = cleaned;
-      budget.remaining -= cost;
-    }
-  }
 }
 
 function quarantineCorruptConfig(configPath) {
@@ -220,7 +148,9 @@ function quarantineCorruptConfig(configPath) {
 }
 
 export function backupConfigBeforeSchemaBump(homeDir, existingRaw, nextSchema) {
-  if (!isPlainRecord(existingRaw) || !Number.isInteger(nextSchema)) return null;
+  if (!existingRaw || typeof existingRaw !== 'object' || Array.isArray(existingRaw) || !Number.isInteger(nextSchema)) {
+    return null;
+  }
   const oldSchema = parseSchemaVersion(existingRaw.schemaVersion);
   if (nextSchema <= oldSchema) return null;
 
@@ -283,8 +213,7 @@ export function persistBridgeMessage(userDataDir, rawJson) {
     const clean = sanitizeImportedConfig(msg.data, { preserveUnknown: true });
     if (existing) {
       const baseline = sanitizeImportedConfig(clean, { preserveUnknown: false });
-      const usedBytes = measureUnknownBytes(baseline, clean);
-      mergeMissingUnknownFields(existing, clean, { remaining: Math.max(0, MAX_UNKNOWN_BYTES - usedBytes) });
+      preserveUnknownFields({ from: existing, into: clean, baseline });
       const existingSchema = parseSchemaVersion(existing.schemaVersion);
       clean.schemaVersion = Math.max(existingSchema, parseSchemaVersion(clean.schemaVersion));
       if (clean.schemaVersion > existingSchema) {

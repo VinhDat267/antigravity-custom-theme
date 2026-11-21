@@ -170,6 +170,37 @@ function csCopyUnknownFields(srcObj, destObj, budget) {
   }
 }
 
+function csMeasureUnknownBytes(baselineObj, targetObj) {
+  if (!csIsPlainObject(targetObj)) return 0;
+  let bytes = 0;
+  for (const key of Object.keys(targetObj)) {
+    if (CS_FORBIDDEN_KEYS.has(key)) continue;
+    if (csIsPlainObject(baselineObj) && Object.prototype.hasOwnProperty.call(baselineObj, key)) {
+      if (csIsPlainObject(baselineObj[key]) && csIsPlainObject(targetObj[key])) {
+        bytes += csMeasureUnknownBytes(baselineObj[key], targetObj[key]);
+      }
+      continue;
+    }
+    const cleaned = csCleanJsonValue(targetObj[key]);
+    if (cleaned === undefined) continue;
+    bytes += csByteLength(JSON.stringify(key)) + csByteLength(JSON.stringify(cleaned)) + 2;
+  }
+  return bytes;
+}
+
+export function preserveUnknownFields({
+  from,
+  into,
+  baseline = null,
+  maxBytes = CS_MAX_UNKNOWN_BYTES
+} = {}) {
+  if (!csIsPlainObject(from) || !csIsPlainObject(into)) return into;
+  const cap = Number.isFinite(Number(maxBytes)) ? Math.max(0, Number(maxBytes)) : CS_MAX_UNKNOWN_BYTES;
+  const used = baseline ? csMeasureUnknownBytes(baseline, into) : 0;
+  csCopyUnknownFields(from, into, { remaining: Math.max(0, cap - used) });
+  return into;
+}
+
 export function migrateConfig(raw) {
   if (!csIsPlainObject(raw)) {
     return {
@@ -417,7 +448,7 @@ export function sanitizeImportedConfig(rawObj, { preserveUnknown = false } = {})
   };
 
   if (preserveUnknown) {
-    csCopyUnknownFields(migratedSrc, result, { remaining: CS_MAX_UNKNOWN_BYTES });
+    preserveUnknownFields({ from: migratedSrc, into: result });
   }
 
   return result;

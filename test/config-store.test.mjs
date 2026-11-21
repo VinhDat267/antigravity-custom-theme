@@ -8,6 +8,7 @@ import {
   DEFAULT_CONFIG,
   mergeConfig,
   migrateConfig,
+  preserveUnknownFields,
   sanitizeCssText,
   sanitizeImportedConfig,
   exportPortableConfig,
@@ -484,4 +485,39 @@ test('unknown preset ids render defaults without rewriting config', () => {
   assert.equal(sanitized.wallpaperId, 'missing-wp');
   assert.equal(sanitized.inputId, 'missing-input');
   assert.equal(sanitized.pet.id, 'missing-pet');
+});
+
+test('preserveUnknownFields copies missing nested keys and respects baseline budget', () => {
+  const baseline = { dimming: 26, pet: { id: 'loi-kiem' } };
+  const into = {
+    dimming: 26,
+    alreadyUnknown: 'abcdefghij',
+    pet: { id: 'meo-than' }
+  };
+  const from = {
+    dimming: 99,
+    alreadyUnknown: 'should-not-overwrite',
+    addedSmall: 'ok',
+    addedTooLarge: '123456789012345678901234567890',
+    pet: { id: 'other', futureMood: 'chill' },
+    ['__proto__']: { polluted: true },
+    constructor: { bad: 1 },
+    prototype: { bad: 2 },
+    fnProp: () => 42
+  };
+
+  // alreadyUnknown (30 B) + addedSmall (18 B) + pet.futureMood (21 B) = 69 B <= 80 B; addedTooLarge (49 B) overflows
+  preserveUnknownFields({ from, into, baseline, maxBytes: 80 });
+
+  assert.equal(into.dimming, 26);
+  assert.equal(into.alreadyUnknown, 'abcdefghij');
+  assert.equal(into.addedSmall, 'ok');
+  assert.equal(into.addedTooLarge, undefined);
+  assert.equal(into.pet.id, 'meo-than');
+  assert.equal(into.pet.futureMood, 'chill');
+  assert.equal(({}).polluted, undefined);
+  assert.equal(Object.prototype.hasOwnProperty.call(into, '__proto__'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(into, 'constructor'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(into, 'prototype'), false);
+  assert.equal(into.fnProp, undefined);
 });
