@@ -20,6 +20,7 @@ import {
   persistBridgeMessage,
   prepareBundleSource,
   readDaemonCommandAck,
+  readJsonFile,
   teardownTarget,
   writeDaemonCommand,
   consumeDaemonCommand
@@ -451,6 +452,27 @@ test('persistBridgeMessage quarantines a corrupt config.json before writing', ()
     const corruptFiles = fs.readdirSync(tmpDir).filter((f) => /^config\.corrupt-\d+\.json$/.test(f));
     assert.equal(corruptFiles.length, 1);
     assert.equal(fs.readFileSync(path.join(tmpDir, corruptFiles[0]), 'utf8'), '{broken json');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('does not quarantine or overwrite when config.json is unreadable', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-ct-unreadable-cfg-'));
+  try {
+    const cfgPath = path.join(tmpDir, 'config.json');
+    fs.mkdirSync(cfgPath);
+
+    assert.deepEqual(readJsonFile(cfgPath), { status: 'unreadable', value: null });
+
+    const res = persistBridgeMessage(
+      tmpDir,
+      JSON.stringify({ type: 'config', data: { enabled: true, dimming: 40, __savedAt: 500 } })
+    );
+    assert.equal(res, null);
+    assert.equal(fs.statSync(cfgPath).isDirectory(), true);
+    const corruptFiles = fs.readdirSync(tmpDir).filter((f) => f.startsWith('config.corrupt-'));
+    assert.equal(corruptFiles.length, 0);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }

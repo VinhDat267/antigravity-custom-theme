@@ -94,15 +94,36 @@ function atomicWriteFile(filePath, content) {
   fs.renameSync(tmpPath, filePath);
 }
 
-function readJsonSafe(filePath) {
+function isPlainRecord(val) {
+  if (!val || typeof val !== 'object' || Array.isArray(val)) return false;
+  const proto = Object.getPrototypeOf(val);
+  return proto === null || Object.getPrototypeOf(proto) === null;
+}
+
+export function readJsonFile(filePath) {
+  let raw;
   try {
-    if (!fs.existsSync(filePath)) return null;
-    const raw = fs.readFileSync(filePath, 'utf8');
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
-  } catch {
-    return null;
+    raw = fs.readFileSync(filePath, 'utf8');
+  } catch (err) {
+    if (err?.code === 'ENOENT') {
+      return { status: 'missing', value: null };
+    }
+    return { status: 'unreadable', value: null };
   }
+  try {
+    const parsed = JSON.parse(raw);
+    if (isPlainRecord(parsed)) {
+      return { status: 'ok', value: parsed };
+    }
+    return { status: 'invalid', value: null };
+  } catch {
+    return { status: 'invalid', value: null };
+  }
+}
+
+function readJsonSafe(filePath) {
+  const res = readJsonFile(filePath);
+  return res.status === 'ok' ? res.value : null;
 }
 
 const FORBIDDEN_UNKNOWN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
@@ -113,12 +134,6 @@ function nextMonotonicTs() {
   const now = Date.now();
   lastMonotonicTs = now > lastMonotonicTs ? now : lastMonotonicTs + 1;
   return lastMonotonicTs;
-}
-
-function isPlainRecord(val) {
-  if (!val || typeof val !== 'object' || Array.isArray(val)) return false;
-  const proto = Object.getPrototypeOf(val);
-  return proto === null || Object.getPrototypeOf(proto) === null;
 }
 
 function parseSchemaVersion(val) {
@@ -251,10 +266,12 @@ export function persistBridgeMessage(userDataDir, rawJson) {
   if (msg.type === 'config' || msg.type === 'config-init') {
     if (!msg.data || typeof msg.data !== 'object' || Array.isArray(msg.data)) return null;
     const configPath = path.join(userDataDir, 'config.json');
-    const existing = readJsonSafe(configPath);
-    if (!existing && fs.existsSync(configPath)) {
+    const existingRead = readJsonFile(configPath);
+    if (existingRead.status === 'unreadable') return null;
+    if (existingRead.status === 'invalid') {
       quarantineCorruptConfig(configPath);
     }
+    const existing = existingRead.status === 'ok' ? existingRead.value : null;
     const hasValidTs = Number.isFinite(Number(msg.data.__savedAt));
     const nextTs = hasValidTs ? Number(msg.data.__savedAt) : 0;
     if (existing) {
