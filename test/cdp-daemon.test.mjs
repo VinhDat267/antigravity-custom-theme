@@ -14,6 +14,7 @@ import {
   resolvePortFile,
   parsePortFileContent,
   filterAntigravityTargets,
+  getDaemonStatus,
   persistBridgeMessage,
   prepareBundleSource,
   readDaemonCommandAck,
@@ -325,6 +326,27 @@ test('prepareBundleSource memoizes payload by file mtimes and computeNextPollDel
     assert.ok(trimmed.endsWith('latest-tail-marker\n'), 'capDaemonLogFile must preserve newest tail lines');
     assert.equal(isNodeProcessAlive(process.pid), true);
   } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('daemon defaults resolve to resolveThemeHome() instead of <root>/user-data', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-ct-home-default-'));
+  const prevHome = process.env.AGY_THEME_HOME;
+  try {
+    const tmpRoot = path.join(tmpDir, 'repo');
+    const tmpHome = path.join(tmpDir, 'theme-home');
+    fs.mkdirSync(tmpRoot, { recursive: true });
+    process.env.AGY_THEME_HOME = tmpHome;
+
+    const st = getDaemonStatus({ rootDir: tmpRoot });
+    assert.equal(st.pidFile, path.join(tmpHome, 'daemon.pid'));
+  } finally {
+    if (prevHome === undefined) {
+      delete process.env.AGY_THEME_HOME;
+    } else {
+      process.env.AGY_THEME_HOME = prevHome;
+    }
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });

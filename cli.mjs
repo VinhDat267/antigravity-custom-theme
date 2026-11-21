@@ -21,11 +21,22 @@ import {
 } from './daemon/cdp-daemon.mjs';
 import { buildBundle } from './scripts/build.mjs';
 import { runVerifyCli } from './scripts/verify-cdp.mjs';
+import { migrateLegacyUserData } from './daemon/migrate-legacy.mjs';
+import { detectRunMode, homePaths, resolveThemeHome } from './daemon/paths.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = __dirname;
-const USER_DATA_DIR = path.join(ROOT_DIR, 'user-data');
+const USER_DATA_DIR = resolveThemeHome();
+
+function maybeMigrateLegacySourceData() {
+  if (detectRunMode({ rootDir: ROOT_DIR }) !== 'source') return;
+  migrateLegacyUserData({
+    legacyDir: path.join(ROOT_DIR, 'user-data'),
+    homeDir: USER_DATA_DIR,
+    log: (line) => console.log(`[migrate] ${line}`)
+  });
+}
 
 function printHelp() {
   console.log(
@@ -77,6 +88,7 @@ async function main() {
   }
 
   if (cmd === 'start') {
+    maybeMigrateLegacySourceData();
     const status = getDaemonStatus({ rootDir: ROOT_DIR, userDataDir: USER_DATA_DIR });
     if (status.running) {
       console.log(`CDP daemon already running (PID ${status.pid}).`);
@@ -110,7 +122,7 @@ async function main() {
     if (started && pid) {
       console.log(`Started Antigravity CDP theme daemon (PID ${pid}).`);
     } else {
-      console.error('Failed to confirm CDP daemon startup. Check user-data/daemon.log.');
+      console.error(`Failed to confirm CDP daemon startup. Check ${homePaths(USER_DATA_DIR).log}.`);
       process.exitCode = 1;
     }
     return;
@@ -142,6 +154,7 @@ async function main() {
   }
 
   if (cmd === 'inject') {
+    maybeMigrateLegacySourceData();
     const bundlePath = path.join(ROOT_DIR, 'dist', 'antigravity-theme.js');
     if (!fs.existsSync(bundlePath) || args.includes('--build')) {
       buildBundle({ rootDir: ROOT_DIR });

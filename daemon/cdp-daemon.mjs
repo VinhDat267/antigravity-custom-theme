@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import { buildBundle, stripDeletedWallpapers, stripHiddenAssets } from '../scripts/build.mjs';
 import { sanitizeImportedConfig } from '../src/core/config-store.js';
+import { resolveThemeHome } from './paths.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -436,7 +437,7 @@ export function computeNextPollDelay({ hasActiveSessions, fastPollMs = 1500, idl
 
 export function prepareBundleSource({ rootDir = DEFAULT_ROOT_DIR, userDataDir } = {}) {
   const resolvedRoot = path.resolve(rootDir);
-  const resolvedUserDir = path.resolve(userDataDir || path.join(resolvedRoot, 'user-data'));
+  const resolvedUserDir = path.resolve(userDataDir || resolveThemeHome());
   const bundlePath = path.join(resolvedRoot, 'dist', 'antigravity-theme.js');
   if (!fs.existsSync(bundlePath)) {
     buildBundle({ rootDir: resolvedRoot, outFile: bundlePath });
@@ -510,11 +511,12 @@ ${payload}
 }
 
 export async function injectTarget(session, { rootDir = DEFAULT_ROOT_DIR, userDataDir, registerNewDocument = false, state = null } = {}) {
+  const resolvedUserDir = path.resolve(userDataDir || resolveThemeHome());
   const hasShell = await isShellTarget(session);
   if (!hasShell) return { injected: false, reason: 'no-shell' };
 
-  await ensureHostBridge(session, userDataDir, state);
-  const { payload } = prepareBundleSource({ rootDir, userDataDir });
+  await ensureHostBridge(session, resolvedUserDir, state);
+  const { payload } = prepareBundleSource({ rootDir, userDataDir: resolvedUserDir });
 
   if (registerNewDocument) {
     try {
@@ -538,7 +540,7 @@ export async function injectTarget(session, { rootDir = DEFAULT_ROOT_DIR, userDa
           if (session.closed) return;
           void injectTarget(session, {
             rootDir,
-            userDataDir,
+            userDataDir: resolvedUserDir,
             registerNewDocument: false,
             state
           }).catch(() => {});
@@ -591,7 +593,7 @@ export async function teardownTarget(session, state = null, { wipeData = false }
 
 export async function runOneShotInject({ rootDir = DEFAULT_ROOT_DIR, userDataDir, portFileOpts = {} } = {}) {
   const resolvedRoot = path.resolve(rootDir);
-  const resolvedUserDir = userDataDir || path.join(resolvedRoot, 'user-data');
+  const resolvedUserDir = path.resolve(userDataDir || resolveThemeHome());
   const active = readActivePort(portFileOpts);
   if (!active) {
     throw new Error(`DevToolsActivePort not found or invalid (${resolvePortFile(portFileOpts)})`);
@@ -645,7 +647,7 @@ export async function runOneShotCommand({
   portFileOpts = {}
 } = {}) {
   const resolvedRoot = path.resolve(rootDir);
-  const resolvedUserDir = userDataDir || path.join(resolvedRoot, 'user-data');
+  const resolvedUserDir = path.resolve(userDataDir || resolveThemeHome());
 
   if (cmd === 'reset' && wipeData) {
     const cfgPath = path.join(resolvedUserDir, 'config.json');
@@ -725,7 +727,7 @@ export function readDaemonPid(userDataDir) {
 
 export function getDaemonStatus({ rootDir = DEFAULT_ROOT_DIR, userDataDir, portFileOpts = {} } = {}) {
   const resolvedRoot = path.resolve(rootDir);
-  const resolvedUserDir = userDataDir || path.join(resolvedRoot, 'user-data');
+  const resolvedUserDir = path.resolve(userDataDir || resolveThemeHome());
   const pidFile = path.join(resolvedUserDir, 'daemon.pid');
   const pid = readDaemonPid(resolvedUserDir);
   const running = pid ? isNodeProcessAlive(pid) : false;
@@ -770,7 +772,7 @@ export async function runDaemon({
   pollMs = 1500
 } = {}) {
   const resolvedRoot = path.resolve(rootDir);
-  const resolvedUserDir = userDataDir || path.join(resolvedRoot, 'user-data');
+  const resolvedUserDir = path.resolve(userDataDir || resolveThemeHome());
   fs.mkdirSync(resolvedUserDir, { recursive: true });
 
   const pidPath = path.join(resolvedUserDir, 'daemon.pid');
