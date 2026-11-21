@@ -10,6 +10,8 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
+import { readPackageVersion } from '../daemon/paths.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEFAULT_ROOT = path.resolve(__dirname, '..');
@@ -169,8 +171,13 @@ export function buildBundle({ rootDir = DEFAULT_ROOT, outFile, moduleFiles = MOD
     parts.push(compactModuleCode(stripModuleSyntax(code)));
   }
 
+  const pkgPath = path.join(resolvedRoot, 'package.json');
+  const version = fs.existsSync(pkgPath)
+    ? readPackageVersion(resolvedRoot)
+    : readPackageVersion(DEFAULT_ROOT);
+
   parts.push('\n})();\n');
-  const code = parts.join('\n');
+  const code = parts.join('\n').replaceAll('__AGY_THEME_VERSION__', version);
 
   fs.mkdirSync(path.dirname(targetOut), { recursive: true });
   fs.writeFileSync(targetOut, code, 'utf8');

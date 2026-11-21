@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -344,6 +345,67 @@ test('built-in WebP pet sprites stay compact (< 60 KB combined) with valid RIFF 
   assert.equal(b2.subarray(0, 4).toString('ascii'), 'RIFF');
   assert.equal(b2.subarray(8, 12).toString('ascii'), 'WEBP');
   assert.ok(b1.length + b2.length < 60_000, `Expected combined WebP sprites < 60 KB, got ${b1.length + b2.length} bytes`);
+});
+
+test('bundle exposes package.json version on window.__AGY_CUSTOM_THEME__.version', () => {
+  const repoRoot = path.resolve(import.meta.dirname, '..');
+  const pkgVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8')).version;
+
+  const makeMockWin = () => {
+    const mockDoc = {
+      readyState: 'complete',
+      body: { classList: { add() {}, remove() {} }, prepend() {}, appendChild() {}, contains: () => false },
+      documentElement: { classList: { add() {}, remove() {} }, style: { setProperty() {}, removeProperty() {} } },
+      head: { appendChild() {} },
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      getElementById: () => null,
+      addEventListener: () => {},
+      removeEventListener: () => {}
+    };
+    const mockWin = {
+      innerWidth: 1280,
+      innerHeight: 720,
+      devicePixelRatio: 1,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      document: mockDoc
+    };
+    mockWin.window = mockWin;
+    mockWin.globalThis = mockWin;
+    return mockWin;
+  };
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-version-test-'));
+  try {
+    const realOut = path.join(tmpDir, 'real-bundle.js');
+    const realRes = buildBundle({ rootDir: repoRoot, outFile: realOut });
+    const realWin = makeMockWin();
+    new vm.Script(realRes.code).runInNewContext(realWin);
+    assert.equal(realWin.__AGY_CUSTOM_THEME__.version, pkgVersion);
+
+    const customRoot = path.join(tmpDir, 'custom-root');
+    fs.cpSync(path.join(repoRoot, 'src'), path.join(customRoot, 'src'), { recursive: true });
+    fs.writeFileSync(
+      path.join(customRoot, 'package.json'),
+      JSON.stringify({ name: 'antigravity-custom-theme', version: '9.8.7' }),
+      'utf8'
+    );
+    const customRes = buildBundle({
+      rootDir: customRoot,
+      outFile: path.join(customRoot, 'dist', 'antigravity-theme.js')
+    });
+    const customWin = makeMockWin();
+    new vm.Script(customRes.code).runInNewContext(customWin);
+    assert.equal(customWin.__AGY_CUSTOM_THEME__.version, '9.8.7');
+
+    const cliVersion = execFileSync(process.execPath, [path.join(repoRoot, 'cli.mjs'), '--version'], {
+      encoding: 'utf8'
+    }).trim();
+    assert.equal(cliVersion, pkgVersion);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 });
 
 

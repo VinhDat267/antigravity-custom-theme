@@ -22,7 +22,7 @@ import {
 import { buildBundle } from './scripts/build.mjs';
 import { runVerifyCli } from './scripts/verify-cdp.mjs';
 import { migrateLegacyUserData } from './daemon/migrate-legacy.mjs';
-import { detectRunMode, homePaths, resolveThemeHome } from './daemon/paths.mjs';
+import { detectRunMode, homePaths, readPackageVersion, resolveThemeHome } from './daemon/paths.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,7 +53,8 @@ function printHelp() {
       '  inject [--one-shot]         Inject/reinject theme into live Antigravity windows',
       '  open-settings [--tab <id>]  Open Custom Theme Studio on active window',
       '  reset [--wipe]              Tear down live theme hooks (optional --wipe deletes saved config)',
-      '  verify [--unmounted]        Verify live theme state & Zero Live Blur over CDP'
+      '  verify [--unmounted]        Verify live theme state & Zero Live Blur over CDP',
+      '  --version, -v               Print package version'
     ].join('\n')
   );
 }
@@ -71,6 +72,11 @@ async function main() {
   const [cmd, ...args] = process.argv.slice(2);
   if (!cmd || cmd === '--help' || cmd === '-h') {
     printHelp();
+    return;
+  }
+
+  if (cmd === '--version' || cmd === '-v') {
+    console.log(readPackageVersion(ROOT_DIR));
     return;
   }
 
