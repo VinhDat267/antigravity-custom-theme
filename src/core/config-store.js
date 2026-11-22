@@ -9,8 +9,10 @@ const MEDIA_DB_NAME = 'agy_custom_theme_media_v1';
 const MEDIA_STORE_NAME = 'assets';
 
 export const MEDIA_SLOTS = ['wallpaper', 'wallpaperLight', 'userAvatar', 'agentAvatar', 'pet', 'sticker'];
+export const CONFIG_SCHEMA_VERSION = 1;
 
 export const DEFAULT_CONFIG = {
+  schemaVersion: CONFIG_SCHEMA_VERSION,
   enabled: true,
   lang: 'vi',
   isLight: false,
@@ -79,6 +81,166 @@ export const DEFAULT_CONFIG = {
   customBundles: [],
   __savedAt: 0
 };
+
+const CS_MAX_UNKNOWN_BYTES = 64 * 1024;
+const CS_FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+export const CONFIG_MIGRATIONS = [
+  {
+    from: 0,
+    to: 1,
+    up(cfg) {
+      return { ...cfg, schemaVersion: 1 };
+    }
+  }
+];
+
+function csParseSchemaVersion(val) {
+  return typeof val === 'number' && Number.isInteger(val) && val >= 0 ? val : 0;
+}
+
+function csIsPlainObject(val) {
+  if (!val || typeof val !== 'object' || Array.isArray(val)) return false;
+  const proto = Object.getPrototypeOf(val);
+  return proto === null || Object.getPrototypeOf(proto) === null;
+}
+
+function csByteLength(str) {
+  if (typeof TextEncoder === 'function') {
+    return new TextEncoder().encode(str).length;
+  }
+  let bytes = 0;
+  for (let i = 0; i < str.length; i += 1) {
+    const code = str.charCodeAt(i);
+    if (code < 0x80) bytes += 1;
+    else if (code < 0x800) bytes += 2;
+    else if (code >= 0xd800 && code <= 0xdbff) {
+      bytes += 4;
+      i += 1;
+    } else bytes += 3;
+  }
+  return bytes;
+}
+
+function csCleanJsonValue(val, depth = 0) {
+  if (depth > 16) return undefined;
+  if (val === null) return null;
+  const t = typeof val;
+  if (t === 'string' || t === 'boolean') return val;
+  if (t === 'number') return Number.isFinite(val) ? val : undefined;
+  if (Array.isArray(val)) {
+    const out = [];
+    for (let i = 0; i < val.length; i += 1) {
+      const cleaned = csCleanJsonValue(val[i], depth + 1);
+      out.push(cleaned === undefined ? null : cleaned);
+    }
+    return out;
+  }
+  if (csIsPlainObject(val)) {
+    const out = {};
+    for (const key of Object.keys(val)) {
+      if (CS_FORBIDDEN_KEYS.has(key)) continue;
+      const cleaned = csCleanJsonValue(val[key], depth + 1);
+      if (cleaned !== undefined) {
+        out[key] = cleaned;
+      }
+    }
+    return out;
+  }
+  return undefined;
+}
+
+function csCopyUnknownFields(srcObj, destObj, budget) {
+  if (!csIsPlainObject(srcObj) || !csIsPlainObject(destObj)) return;
+  for (const key of Object.keys(srcObj)) {
+    if (CS_FORBIDDEN_KEYS.has(key)) continue;
+    if (Object.prototype.hasOwnProperty.call(destObj, key)) {
+      if (csIsPlainObject(srcObj[key]) && csIsPlainObject(destObj[key])) {
+        csCopyUnknownFields(srcObj[key], destObj[key], budget);
+      }
+      continue;
+    }
+    const cleaned = csCleanJsonValue(srcObj[key]);
+    if (cleaned === undefined) continue;
+    const cost = csByteLength(JSON.stringify(key)) + csByteLength(JSON.stringify(cleaned)) + 2;
+    if (cost <= budget.remaining) {
+      destObj[key] = cleaned;
+      budget.remaining -= cost;
+    }
+  }
+}
+
+function csMeasureUnknownBytes(baselineObj, targetObj) {
+  if (!csIsPlainObject(targetObj)) return 0;
+  let bytes = 0;
+  for (const key of Object.keys(targetObj)) {
+    if (CS_FORBIDDEN_KEYS.has(key)) continue;
+    if (csIsPlainObject(baselineObj) && Object.prototype.hasOwnProperty.call(baselineObj, key)) {
+      if (csIsPlainObject(baselineObj[key]) && csIsPlainObject(targetObj[key])) {
+        bytes += csMeasureUnknownBytes(baselineObj[key], targetObj[key]);
+      }
+      continue;
+    }
+    const cleaned = csCleanJsonValue(targetObj[key]);
+    if (cleaned === undefined) continue;
+    bytes += csByteLength(JSON.stringify(key)) + csByteLength(JSON.stringify(cleaned)) + 2;
+  }
+  return bytes;
+}
+
+export function preserveUnknownFields({
+  from,
+  into,
+  baseline = null,
+  maxBytes = CS_MAX_UNKNOWN_BYTES
+} = {}) {
+  if (!csIsPlainObject(from) || !csIsPlainObject(into)) return into;
+  const cap = Number.isFinite(Number(maxBytes)) ? Math.max(0, Number(maxBytes)) : CS_MAX_UNKNOWN_BYTES;
+  const used = baseline ? csMeasureUnknownBytes(baseline, into) : 0;
+  csCopyUnknownFields(from, into, { remaining: Math.max(0, cap - used) });
+  return into;
+}
+
+export function migrateConfig(raw) {
+  if (!csIsPlainObject(raw)) {
+    return {
+      config: { schemaVersion: CONFIG_SCHEMA_VERSION },
+      fromVersion: 0,
+      toVersion: CONFIG_SCHEMA_VERSION,
+      migrated: true
+    };
+  }
+
+  let current = csCleanJsonValue(raw);
+  if (!csIsPlainObject(current)) current = {};
+  const fromVersion = csParseSchemaVersion(current.schemaVersion);
+
+  if (fromVersion >= CONFIG_SCHEMA_VERSION) {
+    return {
+      config: current,
+      fromVersion,
+      toVersion: fromVersion,
+      migrated: false
+    };
+  }
+
+  let version = fromVersion;
+  let migrated = false;
+  while (version < CONFIG_SCHEMA_VERSION) {
+    const step = CONFIG_MIGRATIONS.find((m) => m.from === version);
+    if (!step) break;
+    current = step.up(current);
+    version = csParseSchemaVersion(current.schemaVersion);
+    migrated = true;
+  }
+
+  return {
+    config: current,
+    fromVersion,
+    toVersion: version,
+    migrated
+  };
+}
 
 function csDeepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
@@ -242,7 +404,7 @@ function csSanitizeBundlePatch(rawPatch) {
   const patch = {};
   for (const key of Object.keys(rawPatch)) {
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
-    if (key === 'customBundles' || key === '__savedAt') continue;
+    if (key === 'customBundles' || key === '__savedAt' || key === 'schemaVersion') continue;
     if (Object.prototype.hasOwnProperty.call(sanitized, key)) {
       patch[key] = sanitized[key];
     }
@@ -250,9 +412,11 @@ function csSanitizeBundlePatch(rawPatch) {
   return patch;
 }
 
-export function sanitizeImportedConfig(rawObj) {
+export function sanitizeImportedConfig(rawObj, { preserveUnknown = false } = {}) {
   const src = rawObj && typeof rawObj === 'object' && !Array.isArray(rawObj) ? rawObj : {};
-  const core = csSanitizeConfigCore(src);
+  const { config: migratedSrc } = migrateConfig(src);
+  const core = csSanitizeConfigCore(migratedSrc);
+  const schemaVersion = csParseSchemaVersion(migratedSrc.schemaVersion);
 
   const sanitizeCustomBundles = (bundles) => {
     if (!Array.isArray(bundles)) return [];
@@ -276,11 +440,18 @@ export function sanitizeImportedConfig(rawObj) {
     return out;
   };
 
-  return {
+  const result = {
+    schemaVersion,
     ...core,
-    customBundles: sanitizeCustomBundles(src.customBundles),
-    __savedAt: Number.isFinite(Number(src.__savedAt)) ? Number(src.__savedAt) : 0
+    customBundles: sanitizeCustomBundles(migratedSrc.customBundles),
+    __savedAt: Number.isFinite(Number(migratedSrc.__savedAt)) ? Number(migratedSrc.__savedAt) : 0
   };
+
+  if (preserveUnknown) {
+    preserveUnknownFields({ from: migratedSrc, into: result });
+  }
+
+  return result;
 }
 
 export function exportPortableConfig(config) {
@@ -337,7 +508,8 @@ export function loadConfig(envWindow) {
   }
   if (!chosen) return csDeepClone(DEFAULT_CONFIG);
 
-  const cfg = csMergeDeep(DEFAULT_CONFIG, chosen);
+  const { config: migrated } = migrateConfig(chosen);
+  const cfg = csMergeDeep(DEFAULT_CONFIG, migrated);
   cfg.customCss = sanitizeCssText(cfg.customCss || '');
   if (chosen === boot) {
     csWriteLocal(win, cfg);
@@ -362,6 +534,10 @@ export function syncConfigToHost(cfg, envWindow) {
 export function resetConfig(current = null, envWindow) {
   const fresh = csDeepClone(DEFAULT_CONFIG);
   if (current) {
+    const curSchema = csParseSchemaVersion(current.schemaVersion);
+    if (curSchema > fresh.schemaVersion) {
+      fresh.schemaVersion = curSchema;
+    }
     fresh.lang = current.lang === 'en' ? 'en' : 'vi';
     fresh.hiddenWallpapers = [...(current.hiddenWallpapers || [])];
     fresh.hiddenStickers = [...(current.hiddenStickers || [])];

@@ -7,7 +7,8 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { buildBundle, stripDeletedWallpapers, stripHiddenAssets } from '../scripts/build.mjs';
-import { sanitizeImportedConfig } from '../src/core/config-store.js';
+import { preserveUnknownFields, sanitizeImportedConfig } from '../src/core/config-store.js';
+import { homePaths, resolveThemeHome } from './paths.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -93,15 +94,94 @@ function atomicWriteFile(filePath, content) {
   fs.renameSync(tmpPath, filePath);
 }
 
-function readJsonSafe(filePath) {
+export function readJsonFile(filePath) {
+  let raw;
   try {
-    if (!fs.existsSync(filePath)) return null;
-    const raw = fs.readFileSync(filePath, 'utf8');
+    raw = fs.readFileSync(filePath, 'utf8');
+  } catch (err) {
+    if (err?.code === 'ENOENT') {
+      return { status: 'missing', value: null };
+    }
+    return { status: 'unreadable', value: null };
+  }
+  try {
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : null;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return { status: 'ok', value: parsed };
+    }
+    return { status: 'invalid', value: null };
   } catch {
+    return { status: 'invalid', value: null };
+  }
+}
+
+function readJsonSafe(filePath) {
+  const res = readJsonFile(filePath);
+  return res.status === 'ok' ? res.value : null;
+}
+
+let lastMonotonicTs = 0;
+
+function nextMonotonicTs() {
+  const now = Date.now();
+  lastMonotonicTs = now > lastMonotonicTs ? now : lastMonotonicTs + 1;
+  return lastMonotonicTs;
+}
+
+function parseSchemaVersion(val) {
+  return typeof val === 'number' && Number.isInteger(val) && val >= 0 ? val : 0;
+}
+
+function quarantineCorruptConfig(configPath) {
+  const corruptPath = path.join(path.dirname(configPath), `config.corrupt-${nextMonotonicTs()}.json`);
+  try {
+    fs.renameSync(configPath, corruptPath);
+  } catch {
+    try {
+      fs.copyFileSync(configPath, corruptPath);
+      fs.unlinkSync(configPath);
+    } catch {
+      // Ignore if unreadable/locked
+    }
+  }
+  return corruptPath;
+}
+
+export function backupConfigBeforeSchemaBump(homeDir, existingRaw, nextSchema) {
+  if (!existingRaw || typeof existingRaw !== 'object' || Array.isArray(existingRaw) || !Number.isInteger(nextSchema)) {
     return null;
   }
+  const oldSchema = parseSchemaVersion(existingRaw.schemaVersion);
+  if (nextSchema <= oldSchema) return null;
+
+  const { backupsDir } = homePaths(homeDir);
+  fs.mkdirSync(backupsDir, { recursive: true });
+  const ts = nextMonotonicTs();
+  const backupPath = path.join(backupsDir, `config.schema${oldSchema}.${ts}.json`);
+  atomicWriteFile(backupPath, JSON.stringify(existingRaw, null, 2));
+
+  const pattern = new RegExp(`^config\\.schema${oldSchema}\\.(\\d+)\\.json$`);
+  const entries = fs
+    .readdirSync(backupsDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => {
+      const m = pattern.exec(entry.name);
+      return m ? { name: entry.name, ts: Number(m[1]) } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.ts - b.ts);
+
+  if (entries.length > 3) {
+    for (const stale of entries.slice(0, entries.length - 3)) {
+      try {
+        fs.unlinkSync(path.join(backupsDir, stale.name));
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  }
+
+  return backupPath;
 }
 
 export function persistBridgeMessage(userDataDir, rawJson) {
@@ -116,7 +196,12 @@ export function persistBridgeMessage(userDataDir, rawJson) {
   if (msg.type === 'config' || msg.type === 'config-init') {
     if (!msg.data || typeof msg.data !== 'object' || Array.isArray(msg.data)) return null;
     const configPath = path.join(userDataDir, 'config.json');
-    const existing = readJsonSafe(configPath);
+    const existingRead = readJsonFile(configPath);
+    if (existingRead.status === 'unreadable') return null;
+    if (existingRead.status === 'invalid') {
+      quarantineCorruptConfig(configPath);
+    }
+    const existing = existingRead.status === 'ok' ? existingRead.value : null;
     const hasValidTs = Number.isFinite(Number(msg.data.__savedAt));
     const nextTs = hasValidTs ? Number(msg.data.__savedAt) : 0;
     if (existing) {
@@ -125,7 +210,16 @@ export function persistBridgeMessage(userDataDir, rawJson) {
       if (!hasValidTs && prevTs > 0) return null;
       if (nextTs < prevTs) return null;
     }
-    const clean = sanitizeImportedConfig(msg.data);
+    const clean = sanitizeImportedConfig(msg.data, { preserveUnknown: true });
+    if (existing) {
+      const baseline = sanitizeImportedConfig(clean, { preserveUnknown: false });
+      preserveUnknownFields({ from: existing, into: clean, baseline });
+      const existingSchema = parseSchemaVersion(existing.schemaVersion);
+      clean.schemaVersion = Math.max(existingSchema, parseSchemaVersion(clean.schemaVersion));
+      if (clean.schemaVersion > existingSchema) {
+        backupConfigBeforeSchemaBump(userDataDir, existing, clean.schemaVersion);
+      }
+    }
     atomicWriteFile(configPath, JSON.stringify(clean, null, 2));
     return 'config';
   }
@@ -149,7 +243,7 @@ export function persistBridgeMessage(userDataDir, rawJson) {
 
 export function loadBootPayload(userDataDir) {
   const rawConfig = readJsonSafe(path.join(userDataDir, 'config.json'));
-  const config = rawConfig ? sanitizeImportedConfig(rawConfig) : null;
+  const config = rawConfig ? sanitizeImportedConfig(rawConfig, { preserveUnknown: true }) : null;
   const media = {};
   for (const slot of VALID_MEDIA_SLOTS) {
     const slotPath = path.join(userDataDir, 'media', `${slot}.dat`);
@@ -436,7 +530,7 @@ export function computeNextPollDelay({ hasActiveSessions, fastPollMs = 1500, idl
 
 export function prepareBundleSource({ rootDir = DEFAULT_ROOT_DIR, userDataDir } = {}) {
   const resolvedRoot = path.resolve(rootDir);
-  const resolvedUserDir = path.resolve(userDataDir || path.join(resolvedRoot, 'user-data'));
+  const resolvedUserDir = path.resolve(userDataDir || resolveThemeHome());
   const bundlePath = path.join(resolvedRoot, 'dist', 'antigravity-theme.js');
   if (!fs.existsSync(bundlePath)) {
     buildBundle({ rootDir: resolvedRoot, outFile: bundlePath });
@@ -510,11 +604,12 @@ ${payload}
 }
 
 export async function injectTarget(session, { rootDir = DEFAULT_ROOT_DIR, userDataDir, registerNewDocument = false, state = null } = {}) {
+  const resolvedUserDir = path.resolve(userDataDir || resolveThemeHome());
   const hasShell = await isShellTarget(session);
   if (!hasShell) return { injected: false, reason: 'no-shell' };
 
-  await ensureHostBridge(session, userDataDir, state);
-  const { payload } = prepareBundleSource({ rootDir, userDataDir });
+  await ensureHostBridge(session, resolvedUserDir, state);
+  const { payload } = prepareBundleSource({ rootDir, userDataDir: resolvedUserDir });
 
   if (registerNewDocument) {
     try {
@@ -538,7 +633,7 @@ export async function injectTarget(session, { rootDir = DEFAULT_ROOT_DIR, userDa
           if (session.closed) return;
           void injectTarget(session, {
             rootDir,
-            userDataDir,
+            userDataDir: resolvedUserDir,
             registerNewDocument: false,
             state
           }).catch(() => {});
@@ -591,7 +686,7 @@ export async function teardownTarget(session, state = null, { wipeData = false }
 
 export async function runOneShotInject({ rootDir = DEFAULT_ROOT_DIR, userDataDir, portFileOpts = {} } = {}) {
   const resolvedRoot = path.resolve(rootDir);
-  const resolvedUserDir = userDataDir || path.join(resolvedRoot, 'user-data');
+  const resolvedUserDir = path.resolve(userDataDir || resolveThemeHome());
   const active = readActivePort(portFileOpts);
   if (!active) {
     throw new Error(`DevToolsActivePort not found or invalid (${resolvePortFile(portFileOpts)})`);
@@ -645,7 +740,7 @@ export async function runOneShotCommand({
   portFileOpts = {}
 } = {}) {
   const resolvedRoot = path.resolve(rootDir);
-  const resolvedUserDir = userDataDir || path.join(resolvedRoot, 'user-data');
+  const resolvedUserDir = path.resolve(userDataDir || resolveThemeHome());
 
   if (cmd === 'reset' && wipeData) {
     const cfgPath = path.join(resolvedUserDir, 'config.json');
@@ -725,7 +820,7 @@ export function readDaemonPid(userDataDir) {
 
 export function getDaemonStatus({ rootDir = DEFAULT_ROOT_DIR, userDataDir, portFileOpts = {} } = {}) {
   const resolvedRoot = path.resolve(rootDir);
-  const resolvedUserDir = userDataDir || path.join(resolvedRoot, 'user-data');
+  const resolvedUserDir = path.resolve(userDataDir || resolveThemeHome());
   const pidFile = path.join(resolvedUserDir, 'daemon.pid');
   const pid = readDaemonPid(resolvedUserDir);
   const running = pid ? isNodeProcessAlive(pid) : false;
@@ -770,7 +865,7 @@ export async function runDaemon({
   pollMs = 1500
 } = {}) {
   const resolvedRoot = path.resolve(rootDir);
-  const resolvedUserDir = userDataDir || path.join(resolvedRoot, 'user-data');
+  const resolvedUserDir = path.resolve(userDataDir || resolveThemeHome());
   fs.mkdirSync(resolvedUserDir, { recursive: true });
 
   const pidPath = path.join(resolvedUserDir, 'daemon.pid');

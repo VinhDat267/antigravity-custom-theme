@@ -409,7 +409,7 @@ if (typeof window !== 'undefined') {
 
   const controller = new CustomThemeController();
   window.__AGY_CUSTOM_THEME__ = {
-    version: '1.0.0',
+    version: '__AGY_THEME_VERSION__',
     get isMounted() {
       return controller.isMounted;
     },

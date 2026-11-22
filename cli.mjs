@@ -21,11 +21,22 @@ import {
 } from './daemon/cdp-daemon.mjs';
 import { buildBundle } from './scripts/build.mjs';
 import { runVerifyCli } from './scripts/verify-cdp.mjs';
+import { migrateLegacyUserData } from './daemon/migrate-legacy.mjs';
+import { detectRunMode, homePaths, readPackageVersion, resolveThemeHome } from './daemon/paths.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = __dirname;
-const USER_DATA_DIR = path.join(ROOT_DIR, 'user-data');
+const USER_DATA_DIR = resolveThemeHome();
+
+function maybeMigrateLegacySourceData() {
+  if (detectRunMode({ rootDir: ROOT_DIR }) !== 'source') return;
+  migrateLegacyUserData({
+    legacyDir: path.join(ROOT_DIR, 'user-data'),
+    homeDir: USER_DATA_DIR,
+    log: (line) => console.log(`[migrate] ${line}`)
+  });
+}
 
 function printHelp() {
   console.log(
@@ -42,7 +53,8 @@ function printHelp() {
       '  inject [--one-shot]         Inject/reinject theme into live Antigravity windows',
       '  open-settings [--tab <id>]  Open Custom Theme Studio on active window',
       '  reset [--wipe]              Tear down live theme hooks (optional --wipe deletes saved config)',
-      '  verify [--unmounted]        Verify live theme state & Zero Live Blur over CDP'
+      '  verify [--unmounted]        Verify live theme state & Zero Live Blur over CDP',
+      '  --version, -v               Print package version'
     ].join('\n')
   );
 }
@@ -63,6 +75,11 @@ async function main() {
     return;
   }
 
+  if (cmd === '--version' || cmd === '-v') {
+    console.log(readPackageVersion(ROOT_DIR));
+    return;
+  }
+
   if (cmd === 'build') {
     const res = buildBundle({ rootDir: ROOT_DIR });
     const kb = (res.sizeBytes / 1024).toFixed(1);
@@ -77,6 +94,7 @@ async function main() {
   }
 
   if (cmd === 'start') {
+    maybeMigrateLegacySourceData();
     const status = getDaemonStatus({ rootDir: ROOT_DIR, userDataDir: USER_DATA_DIR });
     if (status.running) {
       console.log(`CDP daemon already running (PID ${status.pid}).`);
@@ -110,7 +128,7 @@ async function main() {
     if (started && pid) {
       console.log(`Started Antigravity CDP theme daemon (PID ${pid}).`);
     } else {
-      console.error('Failed to confirm CDP daemon startup. Check user-data/daemon.log.');
+      console.error(`Failed to confirm CDP daemon startup. Check ${homePaths(USER_DATA_DIR).log}.`);
       process.exitCode = 1;
     }
     return;
@@ -142,6 +160,7 @@ async function main() {
   }
 
   if (cmd === 'inject') {
+    maybeMigrateLegacySourceData();
     const bundlePath = path.join(ROOT_DIR, 'dist', 'antigravity-theme.js');
     if (!fs.existsSync(bundlePath) || args.includes('--build')) {
       buildBundle({ rootDir: ROOT_DIR });
